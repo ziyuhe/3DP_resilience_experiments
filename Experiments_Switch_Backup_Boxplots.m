@@ -1,3 +1,39 @@
+% =========================================================================
+% Script Name:     Experiments_Switch_Backup_Boxplots.m  
+% Author:          Ziyu He  
+% Date:            02/01/2025  
+%  
+% Description:  
+%   This script evaluates the impact of introducing 3DP backup by analyzing:  
+%     - The percentage of unprotected products, 3DP-protected products, and backup switches.  
+%     - Cost savings and demand shortfall reductions provided by both the full and naive 3DP strategies.  
+%  
+%   The number of suppliers (n) is varied among 15, 30, and 45.  
+%  
+% Methodology:  
+%   - For each num_suppliers value, multiple supplier subsets are sampled.  
+%   - BoE local search is used to approximate the optimal 3DP backup selection (Full 3DP strategy).  
+%   - Stochastic Gradient Descent (SGD) is used to evaluate the cost of the naive 3DP strategy.  
+%   - For n > 40, BoE utilizes Sample Average Approximation (SAA) to ensure feasibility.  
+%  
+% Outputs:  
+%   - Percentage of 3DP backup, unprotected products, and backup switches.  
+%   - Cost savings and demand shortfalls under different problem sizes and strategies.  
+%   - Intermediate data is saved, and comparative plots are generated.  
+%  
+% Notes:  
+%   - For larger instances (n > 40), BoE solutions are approximated using Sample Average Approximation (SAA) to improve tractability.  
+%   - "Dedicated Backup" refers to "TM" (Traditional Manufacturing).  
+%   - 3DP capacity represents the total monthly output of printing materials.  
+%   - Weight measurements are initially in grams but converted to kilograms for cost scaling.  
+%  
+% Adjustments:  
+%   - "weight_all" is divided by 1000 to reflect per-unit product weight.  
+%   - "speed_per_machine_month" is divided by 1000 to account for material consumption per printer per month.  
+%   - "Monthly_Weight_3scenarios_all" is divided by 1000 to scale demand scenarios in weight.  
+% =========================================================================
+
+
 %% Read Data (General Information)
 filename = 'Problem_Data/All/Mattel_All_Suppliers_Ave_Weight_Quantity.csv';
 all_csvdata = readtable(filename);
@@ -19,8 +55,6 @@ h_all = c_source_all;                         % Holding cost (assuming zero salv
 
 num_suppliers_all = length(h_all);
 
-% 3DP capacity as a percentage of max yield shortfall or demand
-capacity_3dp_percentage = [0.1:0.1:10, 10.2:0.2:15, 15.5:0.5:20, 21:50, 52:2:100] / 100;
 
 % 3DP fixed cost modeled as linear in capacity (monthly depreciation per printer)
 cost_of_3dp_per_machine_month = [5000, 10000, 15000, 17500, 20000, 22500, ...
@@ -69,17 +103,16 @@ mean_demand_3scenarios_all = sum(Monthly_Quantity_3scenarios_all .* Demand_Proba
 
 
 
-%% Experiment 1: Understanding the percentage of products switched
+%% Experiment: Understanding the percentage of products switched
 %  - Vary the number of suppliers (num_suppliers)
 %  - For each num_suppliers, sample multiple subsets of suppliers
 %  - For each sampled subset on a grid of K values, run:
 %       - BoE local search to approximate the optimal 3DP backup selection (At the optimal K, determine the 3DP set)
 %       - Use SGD to evaluatate the naive policy of only backing up unprotected products
 
-
-
 Random_Suppliers_Num = 50;
 
+% 3DP capacity as a percentage of max demand
 capacity_3dp_percentage = [1e-2, 1e-1 * [1:9], 1:2:25, 30:5:50, 75, 100] / 100;
 
 OUTPUT_MEDIUM_BOE = {};

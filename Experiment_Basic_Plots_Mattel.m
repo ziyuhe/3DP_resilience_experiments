@@ -1,7 +1,7 @@
 % =========================================================================
 % Script Name:       Experiment_Basic_Plots_Mattel.m
 % Author:            Ziyu He
-% Date:              02/04/2025
+% Date:              02/01/2025
 % Description:       
 %   - Generates CSV files for plotting basic statistics of the processed data.
 %   - Includes histograms of unit weights and scatter plots of "Price per Unit" vs. "Weight per Unit".
