@@ -8,7 +8,6 @@
 # library(rpart.plot)
 # library(caret)
 
-
 #########################################################################################################
 # Data Preparation
 #########################################################################################################
@@ -50,9 +49,13 @@ synth_features$`3DP Profit-to-Cost` <- 1 / synth_features$`3DP Profit-to-Cost`
 ###################################################################################################
 # FIRST TRY ALL THE SYNTHETIC FEATURES AND CHECK THE IMPORTANCE SCORES FOR FEATURE SELECTION
 ###################################################################################################
-# Try synthetic features
+# Try synthetic features, including:
+#   - 3DP Profit-to-Cost (larger => more profitable to use 3DP)
+#   - service.level1,2,3 (service level of all the primary supplier, dedicated backup and 3DP)
+#   - Mean Shortfall (mean demand shortfall after observing supplier disruption, demand and applied primary sourcing)
+#   - DB.Retainer.Rate (the dedicated back fixed cost is determined by a portion of the expected earnings of that supplier if used to serve the mean demand, this is that ratio)
+
 selected_synth_features <- c("3DP Profit-to-Cost", "service.level1", "service.level2", "service.level3", "Mean Shortfall", "DB.Retainer.Rate")
-# selected_synth_features <- c("3DP Profit-to-Cost", "Mean Shortfall")
 
 # Combine selected features
 X <- cbind(
