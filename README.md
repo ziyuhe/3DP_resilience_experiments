@@ -82,6 +82,18 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 
 ---
 
+
+## ⚠️ Data Pre-Processing Disclaimer
+The data pre-processing steps are listed in [`Problem_Data/Data_Preprocessing/`](Problem_Data/Data_Preprocessing/), where we provide only the **processing scripts** but **not** the actual raw data.  
+The raw data consists of **Mattel's Bill-of-Lading (BOL) records**, which were retrieved from the third-party service **Import Yeti** and are **not included** in this repository due to **licensing restrictions**.  
+To use these scripts, you must **provide your own dataset** with a similar structure.  
+The final output of these pre-processing steps is a **list of synthesized products** designed for **synthetic suppliers** of Mattel, along with their **monthly aggregated demand data**. These results are available in [`Problem_Data/All/`](Problem_Data/All/), where:  
+- **Supplier information is properly censored** to maintain confidentiality.  
+- **Only aggregated monthly quantities are shared**, ensuring that the original Mattel BOL data **cannot be reverse-engineered**.  
+
+
+
+
 ## **📌 How to Use This Repository**
 ### **🔧 Requirements**
 - **MATLAB** (Tested on R2023a+)
