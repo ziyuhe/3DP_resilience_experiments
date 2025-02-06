@@ -72,7 +72,7 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 
 #### **Factors Explored:**
 - **Fixed cost of 3D printers**  
-  - 📂 [`Experiment_Data/3DPFixedCost/`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_3DPFixedCost/)  
+  - 📂 [`Varying 3DP Fixed Costs`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_3DPFixedCost/)  
 - **Variable cost of 3DP**  
   - 📂 [`Experiment_Data/c3DP/`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_c3DP/)  
 - **Disruption modeling** (independent disruptions with varying failure & yield loss rates)  
