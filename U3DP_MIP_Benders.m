@@ -1,15 +1,27 @@
 function output = U3DP_MIP_Benders(input)
 
-%% Some noteworthy funtionalities:
-%   - "input.GRB_flag": the dual subproblems (associated with each sample) solved by Gurobi or specialized solver
-%   - "input.regularize_flag": the master problem is solved with or without regularizing the first stage decision (best sofar as reference)
-%   - "input.warmstart_flag": warm start the Bender's with some predefined cuts ("aggregated styled")
+% =========================================================================
+% Script Name:       U3DP_MIP_Benders.m
+% Author:            Ziyu He
+% Date:              02/01/2025
+% Description:       
+%   - Implements **Benders Decomposition** to optimize:
+%       - First-stage order quantity
+%       - 3DP backup selection  
+%   - Operates under **fixed 3DP capacity (K)** in a **sales-oriented model**.
+%
+%% Key Functionalities:
+%   - "input.GRB_flag": Uses Gurobi or a specialized solver for dual subproblems.
+%   - "input.regularize_flag": Solves the master problem with/without first-stage decision regularization.
+%   - "input.warmstart_flag": Warm starts Benders with predefined aggregated cuts.
 
-%% Note here we assume that capacity K is fixed 
-% Technically we should introduce an additional binary variable to indicate whether 3DP is adopted at all
-% But this can be dodged by:
-%   - Solve the problem without considering C^3DP
-%   - Postprocess the solution if it is not x=0
+%% Assumption: Fixed 3DP Capacity (K)
+%   - Ideally, a binary variable should indicate 3DP adoption.
+%   - Instead, we:
+%       1. Solve the problem **ignoring** fixed 3DP cost (C^3DP).
+%       2. Postprocess the solution to handle cases where x ~= 0.
+% =========================================================================
+
 
 % Input parameters
 n = input.n; % number of products
@@ -274,18 +286,23 @@ output.abs_best_gap = abs_best_gap;
 output.relative_best_gap = relative_best_gap;
 
 
-%% NOTE: technically, what we solve is not the actual supplier selection problem under fixed K
-% - In the actual problem, when "x=0", namely no suppliers backed-up by 3DP, we should count "C_3DP"
-% - But in this problem we just solved, we assume that we pay "C_3DP" whether 3DP is selected or not
-% - One way to solve this is to add a binary indicator "y" and change "C_3DP" to "C_3DP*y"
-%       - but this requires us to re-solve a new problem when C_3DP changes (due to different 3DP speed or depreciation cost)
-% - Another way is to check the optimal "x":
-%       - if x=0, then keep the optimal solution and let the final total cost be the same as the current optimal value
-%       - if x not 0, then compare the following two values:
-%           - add the current optimal value with C_3DP
-%           - the cost when no 3DP employed, namely sum(TM_cost)
-%       - if the first value is smaller, then keep the solutions and let the final total cost be this value
-%       - if the second value is smaller, keep it as the final total cost, and let let all the solutions be zero
+%% NOTE: The solved problem differs from the actual supplier selection problem under fixed K.
+% - In the real problem, when **x = 0** (no suppliers backed up by 3DP), we should include **C_3DP** in the cost.
+% - However, in this formulation, **C_3DP** is included regardless of whether 3DP is selected.
+
+%% Possible Fixes:
+% 1. **Introduce a binary variable (y)**:
+%    - Modify the cost term to **C_3DP * y**, where **y = 1** if 3DP is used, and **y = 0** otherwise.
+%    - Requires re-solving the problem when **C_3DP** changes (e.g., due to 3DP speed or depreciation costs).
+
+% 2. **Postprocess the optimal solution**:
+%    - If **x = 0**, retain the current solution and total cost.
+%    - If **x ~= 0**, compare:
+%        1. Current optimal cost **+ C_3DP**.
+%        2. Cost when using only TM (sum of TM costs).
+%    - If (1) is lower, keep the current solution.
+%    - If (2) is lower, set all solutions to zero and use the TM-only cost.
+
 
 startTime = clock;
 
@@ -309,15 +326,20 @@ if x_zero_indicator == 0
 
 else
 
-    %% Address the possible scenario that having no 3DP is cheaper
-    %% The current "UB" at termination is the "SAA obj val" of the final solution using the "in-procedure" data of Benders
-    %% There are two key issues with this value when used for post-processing:
-    %%      (1) "Small sample": the data used to evaluate it might be too small!
-    %%      (2) "Inaccurate q": both "q_best" and "x_best" comes from some masters solution, the "q_best" might not be optimal for this "x_best"
-    %% Three resolutions:
-    %% If "input.recompute_flag == 0", then we don't recompute
-    %% If "input.recompute_flag == 1", then we recompute the "SAA obj val" of "q_best, x_best" with a much larger sample size
-    %% If "input.recompute_flag == 2", then we apply SGD to "fixed x_best" problem for a better "q_best", and evaluate the "SAA obj val" with a much large sample size
+    %% Handling the Case Where No 3DP is More Cost-Effective
+    % - The upper bound (UB) at termination is the **SAA objective value** of the final solution 
+    %   based on the in-procedure Benders data.
+    % - However, this value has two key issues for post-processing:
+    %     1. **Small Sample Size**: The evaluation may be based on an insufficient number of samples.
+    %     2. **Inaccurate q**: The best solutions (**q_best, x_best**) come from the master problem,
+    %        but **q_best** might not be optimal for the given **x_best**.
+    
+    %% Three Resolution Strategies:
+    % - **input.recompute_flag == 0** → No recomputation.
+    % - **input.recompute_flag == 1** → Recompute the SAA objective value for **q_best, x_best** 
+    %   using a much larger sample size.
+    % - **input.recompute_flag == 2** → Use SGD to refine **q_best** while keeping **x_best** fixed,
+    %   then evaluate the SAA objective value with a much larger sample size.
 
     if input.recompute_flag == 0
 
@@ -461,7 +483,7 @@ else
         
         %% Some important specifications of running SGD here:
         %% - Do we evalute in-process and how much data do we use to do so?
-        %% - How much data do we use to evaluate the final solution
+        %% - How much data do we use to evaluate the final solution?
 
         supplier_3dp_select = (x_best > 1e-3);
     

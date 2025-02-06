@@ -1,5 +1,18 @@
 function output = Cost_No3DP_or_TM(input)
 
+% =========================================================================
+% Script Name:       Cost_No3DP_or_TM.m
+% Author:            Ziyu He
+% Date:              02/01/2025
+% Description:       
+%   - Compute the optimal solution and optimal cost for each product when we are operating under the following scenarios:
+%       - "input.TM_flag == 1"   <=>   All covered by TM (dedicated Backups)
+%       - "input.TM_flag == 0"   <=>   No Backups
+%   - Operates under a **sales-oriented model**.
+% =========================================================================
+
+
+
 n = input.n; % number of products
 if input.TM_flag == 0
     v_pen = input.v;
@@ -16,7 +29,7 @@ p = input.p;
 yield_loss_rate = input.yield_loss_rate;
 
 Demand_atoms = input.Demand_atoms; % n-by-S, each row denotes all the atoms of a demand  
-Demand_prob = input.Demand_prob; % n-by-S, each row denote the probabiliyt of the atoms of a demand
+Demand_prob = input.Demand_prob;   % n-by-S, each row denote the probabiliyt of the atoms of a demand
 Demand_mean = input.Demand_mean;
 
 opt_q = [];

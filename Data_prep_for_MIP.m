@@ -1,7 +1,14 @@
 function output = Data_prep_for_MIP(input)
 
+% =========================================================================
+% Script Name:       Data_prep_for_MIP.m
+% Author:            Ziyu He
+% Date:              02/01/2025
+% Description:       
+%       - We sample disruptions and demand data 
+%
 %% NOTE: WE ALWAYS ASSUME DEMAND AND DISRUPTIONS ARE INDEPENDENT!!!
-
+%
 %% In this function, we preprocess the data needed for solving the supplier selection through the MIP solver
 % There are several modes in terms of sampling of disruption and demand scenarios
 %% "sample_mode == 1" (INDEPENDENT DISRUPTIONS)
@@ -36,6 +43,10 @@ function output = Data_prep_for_MIP(input)
 %  - and the combined with demand in the same fashion as "sample_mode == 2"
 %  - i.e., each disruption combo has several demand combinations
 % FOR SIMPLICITY WE ASSUME DISRUPTIONS AND DEMAND ARE BOTH SAMPLED
+% =========================================================================
+
+
+
 
 
 

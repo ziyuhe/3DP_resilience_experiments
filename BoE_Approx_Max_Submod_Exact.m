@@ -1,5 +1,30 @@
 function output = BoE_Approx_Max_Submod_Exact(input)
 
+% =========================================================================
+% Script Name:      BoE_Approx_Max_Submod_Exact.m
+% Author:            Ziyu He
+% Date:              02/01/2025
+% Description:       
+%   - Implements a **local search algorithm** for **supermodular approximation (BOE)** 
+%     under a given **3DP capacity (K)**.
+%   - Designed to handle:
+%       - **Large-scale cases**.
+%   - The expectaion here is computed exactly, hence:
+%       - we need finite disruption and demand scenarios
+%       - only doable for smaller cases
+%
+%% Post-Processing Procedure:
+%   - Refines the 3DP backup set obtained from local search.
+%   - Computes the **optimal first-stage order quantity** and corresponding costs.
+%   - Compares the derived **3DP policy** against a **no-3DP** scenario.
+%   - Chooses between:
+%       - **MIP Approach** <= If the selected 3DP set is small.
+%       - **SGD Approach** <= If the selected 3DP set is large.
+%
+%% NOTE: For Larger n, use "BoE_Approx_Max_Submod_SAA" or "BoE_Approx_Max_Submod_SAA_alternative"
+% =========================================================================
+
+
 %% NOTE THIS METHOD APPLIES LOCAL SEARCH ALGORITHM TO OUR SUPERMODULAR APPROXIMATION (BOE)
 %% IN THIS FUNCTION, WE COMPUTE THE EXPECTATION OF THE SUPERMODULAR APPROXIMAITON EXACTLY:
 %%      - ASSUME FINITE DISRUPTION AND DEMAND SCEANRIOS

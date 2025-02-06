@@ -1,13 +1,31 @@
 function output = BoE_Approx_Max_Submod_SAA_alternative(input)
 
-%% NOTE THIS METHOD APPLIES LOCAL SEARCH ALGORITHM TO OUR SUPERMODULAR APPROXIMATION (BOE)
-%% IN THIS FUNCTION, WE COMPUTE THE EXPECTATION OF THE SUPERMODULAR APPROXIMAITON USING SAA
+% =========================================================================
+% Script Name:      BoE_Approx_Max_Submod_SAA_alternative.m
+% Author:            Ziyu He
+% Date:              02/01/2025
+% Description:       
+%   - Implements a **local search algorithm** for **supermodular approximation (BOE)** 
+%     under a given **3DP capacity (K)**.
+%   - Designed to handle:
+%       - **Large-scale cases**.
+%       - **Disruptions with complex distributions** beyond simple independence.
+%   - Uses **Sample Average Approximation (SAA)** to estimate expectations in the supermodular model.
+%
+%% Post-Processing Procedure:
+%   - Refines the 3DP backup set obtained from local search.
+%   - Computes the **optimal first-stage order quantity** and corresponding costs.
+%   - Compares the derived **3DP policy** against a **no-3DP** scenario.
+%   - Chooses between:
+%       - **MIP Approach** <= If the selected 3DP set is small.
+%       - **SGD Approach** <= If the selected 3DP set is large.
+%
+%% Disruption Modeling in SGD:
+%   - **Independent disruptions**: Each supplier fails independently.
+%   - **Comonotonic disruptions**: Correlated supplier failures.
+%   - **Correlation interpolations**: Hybrid model interpolating between independence and comonotonicity.
+% =========================================================================
 
-%% NOTE THAT TECHNICALLY WE COULD DO SMARTER AND APPLY A HYBRID METHOD:
-%%      - WHEN THE SET STZE BECOMES LARGE WE SWITCH TO SAA, BUT WHEN THE SET IS SMALL WE STILL USE EXACT COMPUTATION
-%% FOR NOW, WE ASSUME ALL THE COMPUTATIONS ARE DONE BY SAA
-
-%% NOTE FOR THE RECOMPUTATION PHASE, HERE WE ALSO CONSIDER THE CASE WHEN DISRUPTIONS ARE COMONOTONIC
 
 
 startTime = clock;
@@ -328,32 +346,43 @@ output.solving_time = etime(endTime, startTime);
 
 
 
+%% =========================================================================
 %% NOTE ON POST-PROCESSING
-%% Our original problem is: 
-%%      min_{A, K} U3DP(A,K) + C3DP(K)I{K>0} + UTM(A^c) + CTM(A^c)
+%% =========================================================================
 
-%% When K = 0 (baseline), let the optimal solution be A0 (proudcts not backedup at all)
-%% We rewrite the problem as:
-%%      min {     min_{A, K>0} U3DP(A,K) + C3DP(K) + UTM(A^c) + CTM(A^c),   U3DP(A0,0) + UTM(A0^c) + CTM(A0^c)    }
+%% Original Optimization Problem:
+%   - Objective:  
+%       min_{A, K} U3DP(A,K) + C3DP(K) * I{K > 0} + UTM(A^c) + CTM(A^c)
+%   - Baseline case (K = 0):  
+%       - Let **A0** be the optimal set of products **not backed up** by 3DP.
+%   - Reformulated as:
+%       min { 
+%           min_{A, K > 0} [ U3DP(A,K) + C3DP(K) + UTM(A^c) + CTM(A^c) ],  
+%           [ U3DP(A0,0) + UTM(A0^c) + CTM(A0^c) ]  
+%       }
 
-%% Optimizing A and K jointly is hard, we typically do a grid search on K; namely, we solve the original problem in the following way
-%%     min_{K>0}  min{     Term 1,   Term 2    }
-%% where
-%%     - Term 1  =  min_{A} U3DP(A,K) + C3DP(K) + UTM(A^c) + CTM(A^c)
-%%     - Term 2  =  U3DP(A0,0) + UTM(A0^c) + CTM(A0^c)
+%% Solution Approach:
+%   - Since jointly optimizing A and K is difficult, we typically **grid search on K**.
+%   - This reformulates the problem as:
+%       min_{K > 0} min { Term 1, Term 2 }
+%     where:
+%       - **Term 1** = min_{A} [ U3DP(A,K) + C3DP(K) + UTM(A^c) + CTM(A^c) ]
+%       - **Term 2** = U3DP(A0,0) + UTM(A0^c) + CTM(A0^c)
 
-%% The solution we obtain sofar (A_t) should be understood as the optimizer of Term 1 (REGARDLESS OF C3DP!!!)
-%% We can also do a little further and post-process to get the solution of min{     Term 1,   Term 2    }
-%% Namley:
-%%     - First compute the optimal value of Term 1 under the current A_t (DEPENDS ON C3DP!!!)
-%%     - Compare this to Term 2
-%%     - If Term 1 is better than Term 2, then just use A_t
-%%     - If Term 2 is better than Term 1, then A0 is the current solution
+%% Post-Processing Refinement:
+%   - The obtained solution **A_t** optimizes **Term 1**, **ignoring C3DP**.
+%   - To refine the solution, we compare **Term 1** and **Term 2**:
+%       1. Compute the optimal value of **Term 1** under **A_t** (**now considering C3DP**).
+%       2. Compare it to **Term 2**.
+%       3. **Choose the better solution**:
+%           - If **Term 1 <= Term 2**, keep **A_t**.
+%           - If **Term 2 < Term 1**, use **A0** as the final solution.
 
-%% Before such comparison, note that we don't have the objective value for comparison (Term 1 vs. Term 2), we don't even have the "q part" for evaluation
-%% So we would have to solve the "fixed supplier selection" problem using:
-%%  - input.recompute_flag == 1: GRB (Full Info. or SAA)
-%%  - input.recompute_flag == 2: SGD
+%% Evaluating Term 1 vs. Term 2:
+%   - Since we lack the full objective values (including the **q** component), 
+%     we solve the **fixed supplier selection** problem using:
+%       - **input.recompute_flag == 1** => Solve via **Gurobi** (Full Info or SAA).
+%       - **input.recompute_flag == 2** => Solve via **SGD**.
 
 
 speed_per_machine_month = input.speed_per_machine_month;
@@ -367,14 +396,19 @@ x = logical(x);
 
 x_zero_indicator = (sum(x) > 0);
 
-%% "TOTAL_COST":              records the value of min( Term 1, Term 2 )
-%% "TOTAL_COST_NONZERO":      records the value of Term 1
-%% Q_FINAL, X_FINAL, A_FINAL: records the solution after comparing Term 1 and 2
-%% NOTE: Technically if Term 2 is better, the solution should be 3DP set = A0, and K = 0 ("3DP set" = "Nobackup set" if K=0)
-%% To distinguish this with regular cases when K>0 (so A_t is really "3DP set"):
-%%      - in "X_FINAL", we won't denote elements in A0 with 1, but with Inf
-%%      - in "Q_FINAL", we just let them be zero
-%%      - in "A_FINAL", we let it be [] 
+
+
+%% =========================================================================
+%% Interpretation of Output Variables
+%% =========================================================================
+% "TOTAL_COST":              records the value of min( Term 1, Term 2 )
+% "TOTAL_COST_NONZERO":      records the value of Term 1
+% Q_FINAL, X_FINAL, A_FINAL: records the solution after comparing Term 1 and 2
+% NOTE: Technically if Term 2 is better, the solution should be 3DP set = A0, and K = 0 ("3DP set" = "Nobackup set" if K=0)
+% To distinguish this with regular cases when K>0 (so A_t is really "3DP set"):
+%      - in "X_FINAL", we won't denote elements in A0 with 1, but with Inf
+%      - in "Q_FINAL", we just let them be zero
+%      - in "A_FINAL", we let it be [] 
 
 Q_FINAL = {}; X_FINAL = {}; A_FINAL = {};
 TOTAL_COST = [];
@@ -384,7 +418,7 @@ TOTAL_COST_NONZERO = [];
 %% Here we let input.recompute_distr indicate the distribution we assumed
 %%  - input.recompute_distr == 1 <=> independent
 %%  - input.recompute_distr == 2 <=> comonotonic
-%%  - input.recompute_distr == 3 <=> comonotonic and ind. interpolation
+%%  - input.recompute_distr == 3 <=> interpolation between comonotonic and independent
 
 if ~isfield(input, 'recompute_distr')
     input.recompute_distr = 1;

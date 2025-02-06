@@ -1,34 +1,46 @@
 function output = U3DP_SGD_fixed_suppselect_optimize_K_alternative(input)
 
-%% NOTE: THIS ALLOWS DISRUPTIONS TO BE:
-%%  - Independent
-%%  - Comonotonic
-%%  - At-most-one-disrupted
-
+% =========================================================================
+% Script Name:       U3DP_SGD_fixed_suppselect_optimize_K_alternative.m
+% Author:            Ziyu He
+% Date:              02/01/2025
+% Description:       
+%   - This script applies **Stochastic Gradient Descent (SGD)** to solve the **U3DP problem** 
+%     under predefined configurations.
+%   - The U3DP problem involves optimizing 3DP backup capacity allocation while 
+%     accounting for uncertain disruptions and demand variations.
+%   - The experiment settings include:
+%       - A **sales-oriented** model.
+%       - **Fixed supplier selection** ("x").
+%       - Optimization of **K** (3DP capacity) and **q** (first-stage order quantity).
+%
+%% Disruption Modeling:
+%   - This framework supports different disruption structures:
+%       - **Independent disruptions**: Each supplier fails independently.
+%       - **Comonotonic disruptions**: Correlated supplier failures.
+%       - **At-most-one-disrupted**: Only one supplier fails at a time.
+%
 %% The sampling scheme here:
-%% We can choose to sample everything ahead:
+%  We can choose to sample everything ahead:
 %      - input.sample_ahead == 1: we sample ahead
 %      - input.sample_ahead == 2: we sample one-at-a-time
-%% We can choose to only sample demand:
+%  We can choose to only sample demand:
 %      - input.disrupt_sample_flag == 1: we also sample disruptions
 %      - input.disrupt_sample_flag == 2: we don't sample disruptions and use all disruptions scenarios (only recommended for non-inedpendent cases)
 %  When input.disrupt_sample_flag == 2:   
 %       - Disruption scenarios are contained in "input.failure_combinations"
 %       - Corresponding probabilities are contained in "input.disruption_prob"
-%% When we decide to sample disruptions ("input.disrupt_sample_flag == 1"), we assume different distributions
+%  When we decide to sample disruptions ("input.disrupt_sample_flag == 1"), we assume different distributions
 %      - input.disrupt_distr == 1: independent
 %      - input.disrupt_distr == 2: comonotonic
 %      - input.disrupt_distr == 3: at-most-one-disrupted
+%
+% Scope and Exclusions:
+%   - The following components are **not** included in this experiment’s objective function:
+%       - **Fixed 3DP cost (C_3DP)**.
+%       - **Sales margin term** (`-v' * mean_demand`).
+% =========================================================================
 
-
-%% We apply SGD to solve the U3DP problem under the following configurations
-%  - "sales-oriented" model
-%  - fixed supplier selection ("x")
-%  - fixed 3DP capacity K_3DP
-
-%% NOTE: In the scope of the problem we don't count:
-% - C_3DP
-% - -v'*mean_demand
 
 
 %% Some basic parameters of the problem
@@ -338,7 +350,6 @@ for t = 1 : Max_Steps
 
     
     %% Based on the scenarios of D_scenarios, s_scenarios (prob_scenarios), we evluate the (SAA) objective
-    % if mod(t, input.objeval_steps) == 1
     if mod(t, input.objeval_steps) == 0
         
         if input.show_objeval == 1
@@ -379,10 +390,6 @@ for t = 1 : Max_Steps
             input_objeval.D_bar = input_objeval.D - q_eval.*input_objeval.s;
 
             output_objeval = V3DP_b2b_dual_fixed_suppselect(input_objeval);
-            % input_objeval.n = n;
-            % input_objeval.primal_flag = 1;
-            % input_objeval.dual_flag = 0;
-            % output_objeval = V3DP_primal_dual_fixed_suppselect(input_objeval);
             
             V_3DP_all_scenarios(i,:) = output_objeval.opt_val_primal;
             
