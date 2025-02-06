@@ -8,6 +8,21 @@
 # library(rpart.plot)
 # library(caret)
 
+
+# Decision Tree Analysis: Drivers of 3DP Backup Adoption
+#
+# This script analyzes key factors influencing product switches from 
+# dedicated backup to 3DP resilience using decision trees.
+#
+# Steps:
+# 1 Feature Selection: Start with a full set of synthesized features & binary response (Switched to 3DP: Yes/No).
+# ️2 K-Fold Cross-Validation: Rank feature importance and refine selection.
+# 3 Final Model: Train the optimized decision tree based on selected features.
+#
+# Results provide insights into the main drivers of 3DP adoption. 🚀
+
+
+
 #########################################################################################################
 # Data Preparation
 #########################################################################################################
