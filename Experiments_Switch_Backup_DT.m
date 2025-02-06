@@ -1,12 +1,58 @@
-%% In this document, we study "backup switching"
 
-%% Experiment 2: we want to understand what are driving the products to be switched
-%%      - We sample a bunch of subset of suppliers with the same size
-%%      - For each sampled subset, we run BoE local search on a grid of K values
-%%      - At the optimal K, we will be able to obtain the 3DP set
-%%      - To create heterogeniety of disruption distribution, for each subset, we set p and yield_loss_rate differently
-
-
+% =========================================================================
+% Script Name:     Experiment_Switch_Backup_DT.m 
+% Author:          Ziyu He  
+% Date:            02/01/2025  
+%  
+% Description:  
+%   This script investigates the factors driving product switches to 3DP backup.  
+%   Specifically, we analyze:  
+%     - The probability of switching based on supplier characteristics.  
+%     - The role of cost structures, demand levels, and disruption risks.  
+%  
+% Methodology:  
+%   - We sample multiple supplier subsets, each containing a fixed number of suppliers (n = 10).  
+%   - For each subset:  
+%       - BoE local search is applied over a grid of K values.  
+%       - The optimal K value determines the 3DP backup set.  
+%   - To introduce additional heterogeneity, the following parameters are varied:  
+%       - **Marginal failure rate** (`p`): Uniformly sampled from (0, 0.5).  
+%       - **Yield loss rate** (`yield_loss_rate`): Uniformly sampled from (0, 1).  
+%       - **Cost ratio of TM to primary sourcing** (`c_TM / c_source`): Uniformly sampled from (0, 1).  
+%       - **TM fixed cost ratio relative to mean sourcing cost** (`TM_retainer_ratio`): Uniformly sampled from (0.5, 1).  
+%  
+% Data Structure:  
+%   - Each supplier contributes a data point:  
+%       - **Binary response**: Switched to 3DP or not.  
+%       - **Feature vector**: Capturing key supplier attributes.  
+%  
+% Feature Engineering:  
+%   - **Raw Features**:  
+%       - Cost Parameters: `v`, `h`, `weight`, `c_TM`, `c_3DP`.  
+%       - Demand Statistics: Mean, max, min demand levels.  
+%       - Disruption Characteristics: Failure probability, yield loss rate.  
+%       - 3DP-Specific: `c_cap` (depreciation cost per output).  
+%   - **Synthetic Features**:  
+%       - **Relative Expensiveness of 3DP**: (v-c3DP/weight) and c_cap/(v-c3DP/weight) 
+%       - **Service Level (Profitability)**: v/(v+h), c_TM/(c_TM+h),  c_3DP/(c_3DP+h)
+%       - **Max Demand Shortfall to Handle**: [ D - q*s ]^+,   where q stands for the opt. primary order when K=0
+%       - **The ratio of TM fixed cost to the mean sourcing costs
+%  
+% Outputs:  
+%   - A dataset containing product-switching probabilities and corresponding feature vectors.  
+%   - Comparative analysis of different cost structures and demand-disruption scenarios.  
+%   - Plots illustrating switching trends under varying parameter conditions.  
+%  
+% Notes:  
+%   - "Dedicated Backup" refers to Traditional Manufacturing (TM).  
+%   - 3DP capacity represents the total monthly output of printing materials.  
+%   - Weight values are converted from grams to kilograms for cost scaling.  
+%  
+% Adjustments:  
+%   - `weight_all` is divided by 1000 to reflect per-unit product weight.  
+%   - `speed_per_machine_month` is divided by 1000 for material consumption scaling.  
+%   - `Monthly_Weight_3scenarios_all` is divided by 1000 to normalize weight-based demand.  
+% =========================================================================
 
 
 
@@ -69,11 +115,6 @@ Demand_Probability_3scenarios_all = Demand_Probability_3scenarios_all ./ sum(Dem
 
 % Compute mean demand per supplier
 mean_demand_3scenarios_all = sum(Monthly_Quantity_3scenarios_all .* Demand_Probability_3scenarios_all, 2);
-
-
-
-
-
 
 
 
