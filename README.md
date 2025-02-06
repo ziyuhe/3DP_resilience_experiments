@@ -87,4 +87,4 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 - **MATLAB** (Tested on R2023a+)
 - **Gurobi** (For MIP-based optimization)
 - **R packages:** `rpart`, `rpart.plot`, and `caret` (For decision tree analysis)
-- **Python libraries:** `scipy`, `numpy`, `matplotlib`
+- **Python libraries:** `scipy`, `numpy`, `matplotlib` (For Plots)
