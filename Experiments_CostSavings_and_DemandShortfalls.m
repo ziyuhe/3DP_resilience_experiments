@@ -14,80 +14,61 @@
 filename = 'Problem_Data/All/Mattel_All_Suppliers_Ave_Weight_Quantity.csv';
 all_csvdata = readtable(filename);
 
-weight_all =  all_csvdata.SyntheticProductWeight_gram_; % Weight of the synthetic products (in grams)
-weight_all = weight_all/1000; % Rescale the weights to "kg"
+% Product weight (converted from grams to kg)
+weight_all = all_csvdata.SyntheticProductWeight_gram_ / 1000;
 
-c_source_all = all_csvdata.SyntheticSourcingCost;      % Sourcing cost of the synthetic products
-c_3DP_source_all = all_csvdata.Synthetic3DPCost;       % 3DP printing cost of the synthetic products
-c_TM_source_all = all_csvdata.SyntheticExpeditionCost; % TM cost of the synthetic products
-c_price_all  = all_csvdata.SyntheticPrice;             % Selling price of the synethric products
+% Cost parameters
+c_source_all = all_csvdata.SyntheticSourcingCost;      % Primary sourcing cost
+c_3DP_source_all = all_csvdata.Synthetic3DPCost;       % 3DP production cost
+c_TM_source_all = all_csvdata.SyntheticExpeditionCost; % TM production cost
+c_price_all = all_csvdata.SyntheticPrice;              % Selling price
 
-c_3DP_all = c_3DP_source_all - c_source_all; % The c_3DP in our model is the extra cost of 3DP comparing to primary sourcing
-c_TM_all = c_TM_source_all - c_source_all;   % The c_TM in our model is the extra cost of TM comparing to primary sourcing
-v_all = c_price_all -  c_source_all;         % The lost-sale penalty in our model is the sales margin
-h_all = c_source_all;                    % The holding cost in our model is the the loss in salvage (assume salvage income is 0)
+% Derived cost parameters
+c_3DP_all = c_3DP_source_all - c_source_all; % Extra cost of 3DP vs. primary sourcing
+c_TM_all = c_TM_source_all - c_source_all;   % Extra cost of TM vs. primary sourcing
+v_all = c_price_all - c_source_all;          % Lost-sale penalty (sales margin)
+h_all = c_source_all;                         % Holding cost (assuming zero salvage value)
 
 num_suppliers_all = length(h_all);
 
 
-% Percentage of 3DP capacity (to the maximal yield shortfall or maximal demand)
-capacity_3dp_percentage = [0.1:0.1:10, 10.2:0.2:15, 15.5:0.5:20, 21:50, 52:2:100]/100;
+% 3DP fixed cost modeled as linear in capacity (monthly depreciation per printer)
+cost_of_3dp_per_machine_month = [5000, 10000, 15000, 17500, 20000, 22500, ...
+                                 25000, 30000, 35000, 40000] / 120;
 
+% 3DP speed (output capacity per month in kg)
+speed_per_machine_month = [18000, 50000, 90000] / 1000;
 
-% Monthly cost of 3DP (for now just assume machine depreciation)
-% - $5000 stands for low-end industrial 3DP
-% - $10000 stands for entry-level high-end industrial 3DP
-% - $50000 stands for standard high-end industrial 3DP
-cost_of_3dp_per_machine_month = [5000, 10000, 15000, 17500, 20000, 22500, 25000, 30000, 35000, 40000]/120; 
+% Default disruption parameters (medium disruption case)
+p_medium = 0.05; 
+yield_loss_rate_medium = 0.05;
 
-% Different speed of 3DP (measured in the grams of output materials in a month)
-% - 18000 stands for realistically fast with high quality (thickness of layer)
-% - 90000 stands for realistically fast with standard quality (thickness of layer)
-speed_per_machine_month = [18000, 50000, 90000];
-speed_per_machine_month = speed_per_machine_month/1000; % Rescale the weights to "kg"
-
-% Different configurations of disruptions
-% - Small disruptions: 10% disruption rate with 1% yield loss
-% - Medium disruptions: 5% disruption rate with 5% yield loss
-% - Large disruptions: 1% disruption rate with 10% yield loss
-p_small = 0.1;   yield_loss_rate_small = 0.01;
-p_medium = 0.05; yield_loss_rate_medium = 0.05;
-p_large = 0.01;  yield_loss_rate_large = 0.1;
-
-
-
-
-%% We Consider 3-Scenario Random Demand
+%% Load 3-Scenario Random Demand Data
 filename = 'Problem_Data/All/Mattel_All_Suppliers_Ave_Month_Weight_Quantity_3scenarios.csv';
 all_csvdata_3scenarios = readtable(filename);
 num_scenarios = 3;
 
-weight_sceanarios_col_names = {};
-quantity_scenarios_col_names = {};
-probability_col_names = {};
+% Extract column names for weight, quantity, and probabilities
+weight_sceanarios_col_names = strcat('WeightScenario', string(1:num_scenarios), '_grams_');
+quantity_scenarios_col_names = strcat('QuantityScenario', string(1:num_scenarios));
+probability_col_names = strcat('Scenario', string(1:num_scenarios), 'Probability');
+
+% Read scenario data
+Monthly_Weight_3scenarios_all = zeros(height(all_csvdata_3scenarios), num_scenarios);
+Monthly_Quantity_3scenarios_all = zeros(height(all_csvdata_3scenarios), num_scenarios);
+Demand_Probability_3scenarios_all = zeros(height(all_csvdata_3scenarios), num_scenarios);
+
 for k = 1:num_scenarios
-    weight_sceanarios_col_names{1,k} = strcat('WeightScenario', num2str(k), '_grams_');
-    quantity_sceanarios_col_names{1,k} = strcat('QuantityScenario', num2str(k));
-    probability_col_names{1,k} = strcat('Scenario', num2str(k), 'Probability');
+    Monthly_Weight_3scenarios_all(:, k) = all_csvdata_3scenarios.(weight_sceanarios_col_names{k}) / 1000; % Convert to kg
+    Monthly_Quantity_3scenarios_all(:, k) = all_csvdata_3scenarios.(quantity_scenarios_col_names{k});
+    Demand_Probability_3scenarios_all(:, k) = all_csvdata_3scenarios.(probability_col_names{k});
 end
 
-% For ease of computation, only take 5
-Monthly_Weight_3scenarios_all = [];
-Monthly_Quantity_3scenarios_all = [];
-Demand_Probability_3scenarios_all = [];
-for k = 1:num_scenarios
-    Monthly_Weight_3scenarios_all(:,k) = all_csvdata_3scenarios.(weight_sceanarios_col_names{1,k});
-    Monthly_Quantity_3scenarios_all(:,k) = all_csvdata_3scenarios.(quantity_sceanarios_col_names{1,k});
-    Demand_Probability_3scenarios_all(:,k) = all_csvdata_3scenarios.(probability_col_names{1,k});
-end
-Monthly_Weight_3scenarios_all = Monthly_Weight_3scenarios_all/1000; % Rescale weights to kg
+% Normalize probabilities to prevent numerical precision issues
+Demand_Probability_3scenarios_all = Demand_Probability_3scenarios_all ./ sum(Demand_Probability_3scenarios_all, 2);
 
-
-% Renormalize the probability in case of bad numerical precisions
-Demand_Probability_3scenarios_all = Demand_Probability_3scenarios_all./sum(Demand_Probability_3scenarios_all,2);
-
-% Mean demand
-mean_demand_3scenarios_all = sum(Monthly_Quantity_3scenarios_all.*Demand_Probability_3scenarios_all,2);
+% Compute mean demand per supplier
+mean_demand_3scenarios_all = sum(Monthly_Quantity_3scenarios_all .* Demand_Probability_3scenarios_all, 2);
 
 
 
@@ -98,31 +79,32 @@ mean_demand_3scenarios_all = sum(Monthly_Quantity_3scenarios_all.*Demand_Probabi
 
 
 
+%% Series of Experiments: "Experiments_CostSavings_and_DemandShortfalls"  
+% We conduct a series of experiments using files with the prefix  "Experiments_CostSavings_and_DemandShortfalls" 
+% to study the impact of hyperparameters on the performance of the 3DP resilience strategy. 
 
 
+%% Key hyperparameters and their default values:  
+%   - **c_cap** (per-unit fixed cost of 3DP reservation):  
+%     Default = cost_of_3dp_per_machine_month(1) / speed_per_machine_month(1).  
+%   - **c_3DP**: Default = c_source.  
+%   - **(p, yield_loss_rate)**: Default = (0.05, 0.05).  
+%   - **Correlation among disruptions**: Default = independent.  
+%  
+% Performance of the 3DP resilience strategy is evaluated based on:  
+%   - **Cost savings**  
+%   - **Reduction in demand shortfalls**  
+  
 
+%% In this experiment, we focus on analyzing the impact of **c_cap**,  
+% where **c_cap** varies as follows:  
+%   c_cap = cost_of_3dp_per_machine_month(i) / speed_per_machine_month(j).  
 
-
-
-
-
-
-
-
-
-%% We consider several hyper-parameters:
-%% c_cap: controlled by price per printer and printer speed (EMBEDDED IN EVERY RUN)
-%% c_3DP: by default is c_source, we can try something cheaper and something more expensive
-%% (p, yield_loss_date): by default (0.05, 0.05), we can try other values
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% BASED-LINE CASE: COMPUTATION
+% COMPUTE THE OPTIMAL 3DP POLICY AND COSTS UNDER DIFFERENT c_cap
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% BASE-LINE CASE:
-%%      - c_3DP = 2 * c_source
-%%      - (p, yield_loss_date) = (0.05, 0.05)
-
 
 num_suppliers = num_suppliers_all;
 supplier_subset_idx = false(num_suppliers_all, 1);
@@ -141,13 +123,8 @@ h = h_all;
 
 weight = weight_all;
 
-
-%% (PART OF PRE-PROCESSING) Compute the costs of each supplier when they are
-%% - Backed-up by TM 
-%% - No back-up at all 
-%% - Backed-up by 3DP but inf. capacity
-% Medium disruptions
-% Without backup (op. and total costs: individual product and sum)
+%% Preprocessing: Compute costs under different backup strategies
+% 1. No backup
 input_medium_no3dp.n = num_suppliers;
 input_medium_no3dp.v = v;
 input_medium_no3dp.h = h;
@@ -159,29 +136,26 @@ input_medium_no3dp.Demand_mean = mean_demand_3scenarios;
 input_medium_no3dp.TM_flag = 0;
 output_medium_no3dp = Cost_No3DP_or_TM(input_medium_no3dp);
         
-% All backed-up by 3DP (inf. capacity, we only care about the solution)
+% 2. All backed-up by 3DP (infinite capacity)
 input_medium_3DP_infK = input_medium_no3dp;
 input_medium_3DP_infK.v = c_3DP;
 output_medium_3DP_infK = Cost_No3DP_or_TM(input_medium_3DP_infK);
 
-% All backed-up by TM (op. and total costs: individual product and sum)
+% 3. All backed-up by TM
 TM_retainer_ratio = 0.75;
-C_TM = TM_retainer_ratio*c_source.*mean_demand_3scenarios;
+C_TM = TM_retainer_ratio * c_source .* mean_demand_3scenarios;
 input_medium_TM = input_medium_no3dp;
 input_medium_TM.TM_flag = 1;
 input_medium_TM.c_TM = c_TM; 
 input_medium_TM.C_TM = C_TM; 
 output_medium_TM = Cost_No3DP_or_TM(input_medium_TM);
 
-
-
-%% The products that are originally backed-up by TM
+% Identify products backed up by TM
 TM_backup_set = output_medium_TM.TM_cost < output_medium_no3dp.opt_val;
 nobackup_set = 1 - TM_backup_set;
-COST_TMONLY_BENCMARK = sum(output_medium_TM.TM_cost(TM_backup_set))+sum(output_medium_no3dp.opt_val(logical(nobackup_set)));
+COST_TMONLY_BENCMARK = sum(output_medium_TM.TM_cost(TM_backup_set)) + sum(output_medium_no3dp.opt_val(logical(nobackup_set)));
 
-        
-%% Sample some data for BoE Submod Max SAA
+%% Sampling data for BoE Submod Max SAA
 input_preprocess_medium_sampled.num_suppliers = num_suppliers;
 input_preprocess_medium_sampled.num_scenarios = num_scenarios;
 input_preprocess_medium_sampled.yield_loss_rate = yield_loss_rate_medium;
@@ -190,9 +164,10 @@ input_preprocess_medium_sampled.Monthly_Quantity = Monthly_Quantity_3scenarios;
 input_preprocess_medium_sampled.Demand_Probability = Demand_Probability_3scenarios;
 
 input_preprocess_medium_sampled.sample_mode = 2;
-input_preprocess_medium_sampled.disruption_sample_flag = 1; % We don't sample disruption (keep all combinations)
-input_preprocess_medium_sampled.demand_sample_flag = 1;     % For each disruption scenario, sample a fixed number of demand combos
+input_preprocess_medium_sampled.disruption_sample_flag = 1; % Keep all combinations
+input_preprocess_medium_sampled.demand_sample_flag = 1;     % Sample fixed number of demand scenarios per disruption
 
+% Set sample sizes based on number of suppliers
 if num_suppliers < 20
     demand_samplesize_saa = 200;
     disruption_samplesize_saa = 100;
@@ -210,7 +185,6 @@ end
 input_preprocess_medium_sampled.demand_num_per_disruption = demand_samplesize_saa;
 input_preprocess_medium_sampled.disruption_samplesize = disruption_samplesize_saa;
 
-
 output_preprocess_medium_sampled = Data_prep_for_MIP(input_preprocess_medium_sampled);
 
 disruption_demand_joint_prob_medium_sampled = output_preprocess_medium_sampled.disruption_demand_joint_prob;
@@ -221,36 +195,27 @@ input_boe.disruption_demand_joint_prob = disruption_demand_joint_prob_medium_sam
 input_boe.failure_data = failure_data_medium_sampled;
 input_boe.demand_data = demand_data_medium_sampled;
 
-        
-        
-        
-        
 %% Prepare data for BoE Submod Max
 Obj_const = - output_medium_no3dp.opt_val;
-U0_with_vmean = output_medium_no3dp.opt_val + v.*mean_demand_3scenarios;
+U0_with_vmean = output_medium_no3dp.opt_val + v .* mean_demand_3scenarios;
 U0_no_vmean = output_medium_no3dp.opt_val;
 TM_Delta = output_medium_TM.TM_cost - output_medium_no3dp.opt_val;
 
-ratio_over_weight = (v-c_3DP)./weight;
+ratio_over_weight = (v - c_3DP) ./ weight;
 
-% Optimal primal ordering when no backup
+% Optimal ordering when no backup
 q0 = output_medium_no3dp.opt_q;
 
-% Compute the probability that [Dj - q0_j*s_j]^+ > 0 and == 0 (The probability of having unfilled demand)
-% - Call P([Dj - q0_j*s_j]^+ > 0) "pi_p"
-% - Call P([Dj - q0_j*s_j]^+ = 0) "pi_0"
-
+% Compute probabilities of unmet demand
 pi_p = [];
 pi_0 = [];
 
-for j = 1 : num_suppliers
-    
-    tmp1 = max(0, Monthly_Quantity_3scenarios(j,:)' - q0(j)*[1-yield_loss_rate_medium, 1]);
-    tmp2 = Demand_Probability_3scenarios(j,:)'*[p_medium, 1-p_medium];
+for j = 1:num_suppliers
+    tmp1 = max(0, Monthly_Quantity_3scenarios(j, :)' - q0(j) * [1 - yield_loss_rate_medium, 1]);
+    tmp2 = Demand_Probability_3scenarios(j, :)' * [p_medium, 1 - p_medium];
 
-    pi_p(j,:) = sum(sum(tmp2(tmp1 > 1e-5)));
-    pi_0(j,:) = sum(sum(tmp2(tmp1 <= 1e-5)));
-    
+    pi_p(j, :) = sum(sum(tmp2(tmp1 > 1e-5)));
+    pi_0(j, :) = sum(sum(tmp2(tmp1 <= 1e-5)));
 end
 
 input_boe.U0_with_vmean = U0_with_vmean;
@@ -283,47 +248,26 @@ input_boe.v = v;
 input_boe.h = h;
 input_boe.weight = weight;
 
-input_boe.q_ub = output_medium_no3dp.opt_q;    % HERE WE ADD BOUNDS FOR 1ST STAGE DECISIONS
-input_boe.q_lb = output_medium_3DP_infK.opt_q; % HERE WE ADD BOUNDS FOR 1ST STAGE DECISIONS
+input_boe.q_ub = output_medium_no3dp.opt_q;    
+input_boe.q_lb = output_medium_3DP_infK.opt_q; 
 
-        
-
+%% Benchmark case: Compute cost under different 3DP capacities
 OUTPUT_MEDIUM_BOE_BENCHMARK = {};
 
-capacity_3dp_percentage = [1e-2, 1e-1*[1:9], 1:2:25, 30:5:50, 75, 100]/100;
+capacity_3dp_percentage = [1e-2, 1e-1 * [1:9], 1:2:25, 30:5:50, 75, 100] / 100;
 
-fileID1 = fopen('Log4.txt', 'a'); % 'a' mode appends to the file
-
-for k = 1 : length(capacity_3dp_percentage)
-
-    fprintf("%3.2f Percent of Max Yield Shortfall \n\n", capacity_3dp_percentage(k)*100)
+for k = 1:length(capacity_3dp_percentage)
+    fprintf("%3.2f Percent of Max Yield Shortfall \n\n", capacity_3dp_percentage(k) * 100)
 
     capacity_percentage = capacity_3dp_percentage(k);
-    K_3DP_medium = capacity_percentage*sum(max(Monthly_Weight_3scenarios'));
-    C_3DP_medium = (K_3DP_medium./speed_per_machine_month)'*cost_of_3dp_per_machine_month;
+    K_3DP_medium = capacity_percentage * sum(max(Monthly_Weight_3scenarios'));
+    C_3DP_medium = (K_3DP_medium ./ speed_per_machine_month)' * cost_of_3dp_per_machine_month;
     
     input_boe.K_3DP = K_3DP_medium;
     input_boe.C_3DP = C_3DP_medium;
 
-    input_boe.add_max_pivot_rule = 1;
-    input_boe.delete_max_pivot_rule = 0;
-
     input_boe.GRB_display = 0;
-
     input_boe.auto_recompute = 1;
-    
-    input_boe.recompute_flag = 1;
-
-    input_boe.recompute_sample_mode = 1;
-    input_boe.recompute_disruption_sample_flag = 0;
-    input_boe.recompute_demand_sample_flag = 0;
-    
-    input_boe.recompute_disruption_samplesize_eval = 1000;
-    input_boe.recompute_demand_samplesize_eval = 500; 
-    input_boe.recompute_disruption_samplesize_finaleval = 1000;
-    input_boe.recompute_demand_samplesize_finaleval = 500;
-
-    input_boe.recompute_sgd_Maxsteps = 5e5;
     
     if k == 1
         input_boe.A_init = [];
@@ -337,85 +281,8 @@ for k = 1 : length(capacity_3dp_percentage)
         output_boe = BoE_Approx_Max_Submod_SAA(input_boe);
     end
     
-
-    % input_boe.A_init = [1:num_suppliers];
-    % output_boe2 = BoE_Approx_Max_Submod1(input_boe);
-    % 
-    % if output_boe1.TOTAL_COST(1,1) <  output_boe2.TOTAL_COST(1,1) 
-    %     output_boe = output_boe1;
-    % else
-    %     output_boe = output_boe2;
-    % end
-
-    OUTPUT_MEDIUM_BOE_BENCHMARK{k} = output_boe; 
-    % TIME_BOE(k) = output_boe.solving_time;
-
-
-    fprintf(fileID1, 'Benchmark Case,     k=%3.2f %% \n',  capacity_3dp_percentage(k));
-    fprintf(fileID1, '3DP Set: %d ', OUTPUT_MEDIUM_BOE_BENCHMARK{k}.A_t);
-    fprintf(fileID1, '\n\n')
-
-
-
-    disp("TO NEXT ONE! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ")
-
+    OUTPUT_MEDIUM_BOE_BENCHMARK{k} = output_boe;
 end
-
-
-
-
-%% FOR THE BENCMARK CASE, WE ALSO SUMMARIZE THE FOLLOWINGS
-%% A_t_BOE:      the 3DP set we obtain before post-processing (comparing to having no 3DP selection)
-%% X_BOE:        the 3DP set we obatin after post-processing (under different C3DP coefficients)
-%% TOTAL_COST:   the total system cost after post-processing 
-%% NOTE: TOTAL_COST is computed by (K is fixed):
-%%      - Given "A_t_BOE" obtained from local search method, fix the 3DP set as "A_t_BOE"
-%%      - Run SGD on this fixed 3DP set problem
-%%      - Given solution of SGD, evaluate the U3DP with a larger sample size
-%%      - Compare to the case when no 3DP is selected
-%% Threfore, under different K, the "TOTAL_COST" could be computed on different samples
-X_BOE_BENCHMARK = {}; 
-SWITCHED_BOE_BENCHMARK = {};
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-        X_BOE_BENCHMARK{i,j} = zeros(num_suppliers,length(capacity_3dp_percentage));
-        SWITCHED_BOE_BENCHMARK{i,j} = zeros(num_suppliers,length(capacity_3dp_percentage));
-    end
-end
-TOTAL_COST_BENCHMARK = {};
-A_t_BOE_BENCHMARK = [];
-for k = 1 : length(capacity_3dp_percentage)
-
-    A_t_BOE_BENCHMARK(OUTPUT_MEDIUM_BOE_BENCHMARK{k}.A_t, k) = 1;
-
-    for i = 1 : length(speed_per_machine_month)  
-        for j = 1 : length(cost_of_3dp_per_machine_month)
-
-            TOTAL_COST_BENCHMARK{i,j}(k) = OUTPUT_MEDIUM_BOE_BENCHMARK{k}.TOTAL_COST(i,j);
-            X_BOE_BENCHMARK{i,j}(:, k) = OUTPUT_MEDIUM_BOE_BENCHMARK{k}.X_FINAL{i,j};
-            if ~isinf(sum(X_BOE_BENCHMARK{i,j}(:,k)))
-                SWITCHED_BOE_BENCHMARK{i,j}(:,k) = TM_backup_set - (1-X_BOE_BENCHMARK{i,j}(:,k));
-            end
-
-        end
-    end
-
-end
-
-%% "X_BOE_OPT" is the 3DP set at the optimal K
-%% "SWITCHED_SET_OPT" is the set of products whos backup swithced after intro of 3DP
-X_BOE_OPT_BENCHMARK = {}; 
-SWITCHED_BOE_OPT_BENCHMARK = {};
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-
-        [~, iii] = min(TOTAL_COST_BENCHMARK{i,j});
-        X_BOE_OPT_BENCHMARK{i,j} = X_BOE_BENCHMARK{i,j}(:,iii);
-        SWITCHED_BOE_OPT_BENCHMARK{i,j} = SWITCHED_BOE_BENCHMARK{i,j}(:,iii);
-
-    end
-end
-
 
 save("Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark.mat")
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -425,69 +292,65 @@ save("Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark.mat")
 
 
 
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% BASED-LINE CASE: PLOT COST-SAVINGS VS. K
+% VARYING c_cap: PLOT COST-SAVINGS VS. K
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Summarize the relative cost-savings (PERCENTAGE OF BENCHMARK COST)
+%% NOTE: These plots are for initial verification. The final plots in the paper are generated in Python using the data saved here.
+
+% Summarize relative cost-savings (percentage of benchmark cost)
 COST_SAVINGS_BENCHMARK = [];
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-
-        for k = 1 : length(capacity_3dp_percentage)
-                
-            COST_SAVINGS_BENCHMARK{i,j}(k) = (COST_TMONLY_BENCMARK - OUTPUT_MEDIUM_BOE_BENCHMARK{k}.TOTAL_COST_NONZERO(i,j)) / abs(COST_TMONLY_BENCMARK)*100;
-            
+for i = 1:length(speed_per_machine_month)
+    for j = 1:length(cost_of_3dp_per_machine_month)
+        for k = 1:length(capacity_3dp_percentage)
+            COST_SAVINGS_BENCHMARK{i,j}(k) = (COST_TMONLY_BENCMARK - OUTPUT_MEDIUM_BOE_BENCHMARK{k}.TOTAL_COST_NONZERO(i,j)) / abs(COST_TMONLY_BENCMARK) * 100;
         end
-
     end
 end
 
-%% Plot relative cost-savings vs. K 
-%% Under different printer-price (fixed printing speed)
+% Plot relative cost-savings vs. K under different printer prices (fixed printing speed)
 cost_of_3dp_per_machine_month_subset = [1,3,7,9];
-for i = 1 : length(speed_per_machine_month)  
-
-    for jj = 1 : length(cost_of_3dp_per_machine_month_subset)
-       
+for i = 1:length(speed_per_machine_month)
+    for jj = 1:length(cost_of_3dp_per_machine_month_subset)
         j = cost_of_3dp_per_machine_month_subset(jj);
-        plot([0,capacity_3dp_percentage]*100, [0,COST_SAVINGS_BENCHMARK{i,j}], '-o','LineWidth', 1)
-        hold on
-    
+        plot([0, capacity_3dp_percentage] * 100, [0, COST_SAVINGS_BENCHMARK{i,j}], '-o', 'LineWidth', 1);
+        hold on;
     end
+    
     ylimit = max(COST_SAVINGS_BENCHMARK{i,1});
-    ylim([-1.1*ylimit,  1.1*ylimit])
-
-    xlim([0,100])
+    ylim([-1.1 * ylimit, 1.1 * ylimit]);
+    xlim([0, 100]);
 
     lgd = legend({'1x Baseline', '3x Baseline', '5x Baseline', '7x Baseline'}, 'FontSize', 12);
     title(lgd, 'Cost per unit 3DP capacity');
-    
+
     ax = gca;
     ax.XTickLabel = strcat(ax.XTickLabel, '%');
     ax.YTickLabel = strcat(ax.YTickLabel, '%');
 
-    filename = strcat( 'Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs/Varying_C3DP_Coeff_Fixed_Speed', num2str(i) ,'.pdf');
+    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs/Varying_C3DP_Coeff_Fixed_Speed', num2str(i), '.pdf');
     
-    saveas(gcf,filename)  % as MATLAB figure
-    close(gcf)
-
+    saveas(gcf, filename);
+    close(gcf);
 end
 
-%% Under different printing-speed (fixed printer price)
-for jj = 1 : length(cost_of_3dp_per_machine_month_subset)
-   
+% Plot relative cost-savings vs. K under different printing speeds (fixed printer price)
+for jj = 1:length(cost_of_3dp_per_machine_month_subset)
     j = cost_of_3dp_per_machine_month_subset(jj);
     
-    for i = 1 : length(speed_per_machine_month) 
-        plot([0,capacity_3dp_percentage]*100, [0,COST_SAVINGS_BENCHMARK{i,j}], '-o','LineWidth', 1)
-        hold on
+    for i = 1:length(speed_per_machine_month)
+        plot([0, capacity_3dp_percentage] * 100, [0, COST_SAVINGS_BENCHMARK{i,j}], '-o', 'LineWidth', 1);
+        hold on;
     end
     
     ylimit = max(COST_SAVINGS_BENCHMARK{3,j});
-    ylim([-1.1*ylimit,  1.1*ylimit])
-
-    xlim([0,100])
+    ylim([-1.1 * ylimit, 1.1 * ylimit]);
+    xlim([0, 100]);
 
     lgd = legend({'1x Baseline', '0.4x Baseline', '0.2x Baseline'}, 'FontSize', 12);
     title(lgd, 'Cost per unit 3DP capacity');
@@ -495,51 +358,49 @@ for jj = 1 : length(cost_of_3dp_per_machine_month_subset)
     ax = gca;
     ax.XTickLabel = strcat(ax.XTickLabel, '%');
     ax.YTickLabel = strcat(ax.YTickLabel, '%');
-    
-    filename = strcat( 'Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs/Varying_C3DP_Coeff_Fixed_Printer_Cost', num2str(j) ,'.pdf');
-    
-    saveas(gcf,filename)  % as MATLAB figure
-    close(gcf)
 
+    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs/Varying_C3DP_Coeff_Fixed_Printer_Cost', num2str(j), '.pdf');
+    
+    saveas(gcf, filename);
+    close(gcf);
 end
 
-%% Combine all the results together
-%% Fix the "cost_of_3dp_per_machine_month" as case 1: plot "speed_per_machine_month" case 2, 3
-%% Fix the "speed_per_machine_month" as case 1: plot "cost_of_3dp_per_machine_month" case 1, 3, 7, 9
- 
+% Combine all results
+% Fix "cost_of_3dp_per_machine_month" as case 1: plot "speed_per_machine_month" cases 2, 3
+% Fix "speed_per_machine_month" as case 1: plot "cost_of_3dp_per_machine_month" cases 1, 3, 7, 9
+
 figure;
 hold on;
 
-iiii = [1,11:length(capacity_3dp_percentage)];
+iiii = [1, 11:length(capacity_3dp_percentage)];
 
-for i = length(speed_per_machine_month) : -1 : 1 
-    plot([0,capacity_3dp_percentage(iiii)]*100, [0,COST_SAVINGS_BENCHMARK{i,1}(iiii)], '-o','LineWidth', 1)
-    hold on
+for i = length(speed_per_machine_month):-1:1
+    plot([0, capacity_3dp_percentage(iiii)] * 100, [0, COST_SAVINGS_BENCHMARK{i,1}(iiii)], '-o', 'LineWidth', 1);
+    hold on;
 end
 
 cost_of_3dp_per_machine_month_subset = [1,3,7,9];
 
-for jj = 2 : length(cost_of_3dp_per_machine_month_subset)
-   
+for jj = 2:length(cost_of_3dp_per_machine_month_subset)
     j = cost_of_3dp_per_machine_month_subset(jj);
-    plot([0,capacity_3dp_percentage(iiii)]*100, [0,COST_SAVINGS_BENCHMARK{1,j}(iiii)], '-o','LineWidth', 1)
-    hold on
-
+    plot([0, capacity_3dp_percentage(iiii)] * 100, [0, COST_SAVINGS_BENCHMARK{1,j}(iiii)], '-o', 'LineWidth', 1);
+    hold on;
 end
 
-yline(0, '--', 'LineWidth', 1.5, 'Color', [0.5, 0.5, 0.5]);  % Horizontal grey line
+% Add horizontal reference line
+yline(0, '--', 'LineWidth', 1.5, 'Color', [0.5, 0.5, 0.5]);
 
-x_fill = [0, 100, 100, 0];  % X-coordinates for the shaded area
-y_fill = [0, 0, -1e6, -1e6];  % Arbitrary large negative value for shading
-fill(x_fill, y_fill, [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);  % Light grey fill
+% Add shaded area
+x_fill = [0, 100, 100, 0];
+y_fill = [0, 0, -1e6, -1e6];
+fill(x_fill, y_fill, [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
 
 ylimit = max(COST_SAVINGS_BENCHMARK{3,1});
-ylim([-1.1*ylimit,  1.1*ylimit])
+ylim([-1.1 * ylimit, 1.1 * ylimit]);
+xlim([0, 50]);
+grid on;
 
-xlim([0,50])
-grid
-
-lgd = legend({'0.2x Baseline', '0.4x Baseline', '1x Baseline', '3x Baseline', '5x Baseline', '7x Baseline'}, 'FontSize', 12, 'location', 'southeast');
+lgd = legend({'0.2x Baseline', '0.4x Baseline', '1x Baseline', '3x Baseline', '5x Baseline', '7x Baseline'}, 'FontSize', 12, 'Location', 'southeast');
 title(lgd, 'Cost per unit 3DP capacity');
 
 filename = 'Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs/Varying_C3DP_Coeff_All_in_One.pdf';
@@ -548,8 +409,8 @@ ax = gca;
 ax.XTickLabel = strcat(ax.XTickLabel, '%');
 ax.YTickLabel = strcat(ax.YTickLabel, '%');
 
-saveas(gcf,filename)  % as MATLAB figure
-close(gcf)
+saveas(gcf, filename);
+close(gcf);
 
 
 
@@ -595,22 +456,38 @@ dlmwrite(file_name, data_matrix, '-append', 'precision', '%.4f');
 
 fprintf('Data saved to %s\n', file_name);
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% BASED-LINE CASE: PLOT DEMAND SHORTFALLS
+% VARYING c_cap: PLOT DEMAND SHORTFALLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% SINGLE system: No 3DP
-%%      - Get the set of products not backedup A0
-%%      - Sample pairs of demand and disruptions
-%%      - For each sample (D, s), calculate [D_j - q_j*s_j]^+ and sum over j in A0
-%%      - Save the disrbtuionn as a vector
+%% SYSTEM DEFINITIONS:
+% - "SINGLE" system: No 3DP backup.
+% - "DUO" system: Includes 3DP backup.
+
+% NOTE: These plots are for initial verification. The final plots in the paper are generated in Python using the data saved here.
+
+%% SINGLE SYSTEM: No 3DP
+% - Identify products without backup (A0).
+% - Sample pairs of demand and disruptions.
+% - For each sample (D, s), compute the demand shortfall [D_j - q_j*s_j]^+ and sum over j in A0.
+% - Save the distribution as a vector.
 
 num_suppliers = sum(nobackup_set);
 supplier_subset_idx = logical(nobackup_set);
@@ -618,8 +495,8 @@ Monthly_Weight_3scenarios = Monthly_Weight_3scenarios_all(supplier_subset_idx, :
 Monthly_Quantity_3scenarios = Monthly_Quantity_3scenarios_all(supplier_subset_idx, :);
 Demand_Probability_3scenarios = Demand_Probability_3scenarios_all(supplier_subset_idx, :);
 mean_demand_3scenarios = mean_demand_3scenarios_all(supplier_subset_idx);
-       
-%% Get some sample first 
+
+% Generate demand and disruption samples
 input_preprocess_medium_sampled.num_suppliers = num_suppliers;
 input_preprocess_medium_sampled.num_scenarios = num_scenarios;
 input_preprocess_medium_sampled.yield_loss_rate = yield_loss_rate_medium;
@@ -628,12 +505,12 @@ input_preprocess_medium_sampled.Monthly_Quantity = Monthly_Quantity_3scenarios;
 input_preprocess_medium_sampled.Demand_Probability = Demand_Probability_3scenarios;
 
 input_preprocess_medium_sampled.sample_mode = 2;
-input_preprocess_medium_sampled.disruption_sample_flag = 1; % We don't sample disruption (keep all combinations)
-input_preprocess_medium_sampled.demand_sample_flag = 1;     % For each disruption scenario, sample a fixed number of demand combos
+input_preprocess_medium_sampled.disruption_sample_flag = 1; % No sampling of disruptions (keep all combinations)
+input_preprocess_medium_sampled.demand_sample_flag = 1;     % For each disruption scenario, sample a fixed number of demand values
 
 disruption_samplesize_saa = 1000;    
 demand_samplesize_saa = 100;
-     
+
 input_preprocess_medium_sampled.demand_num_per_disruption = demand_samplesize_saa;
 input_preprocess_medium_sampled.disruption_samplesize = disruption_samplesize_saa;
 
@@ -643,50 +520,46 @@ disruption_demand_joint_prob_medium_sampled = output_preprocess_medium_sampled.d
 failure_data_medium_sampled = output_preprocess_medium_sampled.failure_data;
 demand_data_medium_sampled = output_preprocess_medium_sampled.demand_data;
 
-%% Get the distribution of demand shorfall under no 3DP
+% Compute demand shortfall distribution for the SINGLE system (without 3DP)
 opt_q_nobackup = output_medium_no3dp.opt_q(logical(nobackup_set));
 Demand_shortfall_no3DP_Benchmark = [];
 
-for ss = 1 : length(disruption_demand_joint_prob_medium_sampled)
-
+for ss = 1:length(disruption_demand_joint_prob_medium_sampled)
     D_sample = demand_data_medium_sampled(:, ss); 
     s_sample = failure_data_medium_sampled(:, ss);
     
-    Demand_shortfall_no3DP_Benchmark(ss,1) = sum( max( D_sample - opt_q_nobackup.*s_sample, 0 ) );
-
+    Demand_shortfall_no3DP_Benchmark(ss, 1) = sum(max(D_sample - opt_q_nobackup .* s_sample, 0));
 end
 
+%% DUO SYSTEM: With 3DP
+% - For each capacity K on a predefined grid:
+%   - Identify the set of products backed up by 3DP (A).
+%   - Sample pairs of demand and disruptions.
+%   - For each sample (D, s), compute the optimal 3DP decision q_3DP(D,s) and the total demand shortfall [D_j - q_j*s_j - q_j^3DP(D,s)]^+.
+%   - Save the distribution as a vector.
 
+% NOTES:
+% - For the same K, demand shortfall remains the same for all c_cap values (q_SP is identical).
+% - Different c_cap values yield different optimal K values, affecting demand shortfall.
 
-%% DUO system: After 3DP
-%%      - For each capacity K on a grid 
-%%      - Get the set of products backedup-by 3DP A
-%%      - Sample pairs of demand and disruptions
-%%      - For each sample (D, s), calculate optimal 3DP decision q3DP(D,s) and [D_j - q_j*s_j - q_j^3DP(D,s)]^+ and sum over j in A
-%%      - Save the disribution as a vector
+% Compute demand shortfall distribution for each c_cap:
+% - Identify the optimal K (max cost savings) for each c_cap.
+% - Retrieve the corresponding x and q_SP at the optimal K.
+% - Compute demand shortfall.
 
-%% Two important notes:
-%%      - For the same K, the deamnd shortfall is the same for all c_cap (q_SP is the same)
-%%      - But different c_cap has different opitmla K hence different demand shortfall
+Demand_shortfall_varying_C3DP = {};
 
-%% In what follows, we compute the demand shortfall distribution for each of the c_cap case, specifically:
-%%      - for each c_cap, we find the optimal K (max. cost savings)
-%%      - retrieve the x and q_SP at the opt K, and comupute demand shortfall
-%% (TRUST the cost and q_SP computed by SGD)
-
-Demand_shotfall_varying_C3DP = {};
-
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
+for i = 1:length(speed_per_machine_month)
+    for j = 1:length(cost_of_3dp_per_machine_month)
         
-        fprintf("Working with case %d, %d\n\n", i,j)
+        fprintf("Processing case %d, %d\n", i, j);
 
-        %% Get the optimal x and q_SP
-        [~,kkk] = min(TOTAL_COST_BENCHMARK{i,j});
-        x_3DP = logical(OUTPUT_MEDIUM_BOE_BENCHMARK{1,kkk}.X_FINAL{i,j});
-        q_SP = OUTPUT_MEDIUM_BOE_BENCHMARK{1,kkk}.Q_FINAL{i,j}(x_3DP);
+        % Retrieve the optimal x and q_SP
+        [~, kkk] = min(TOTAL_COST_BENCHMARK{i, j});
+        x_3DP = logical(OUTPUT_MEDIUM_BOE_BENCHMARK{1, kkk}.X_FINAL{i, j});
+        q_SP = OUTPUT_MEDIUM_BOE_BENCHMARK{1, kkk}.Q_FINAL{i, j}(x_3DP);
 
-        %% Preparation
+        % Prepare demand and disruption data for the subset of products backed by 3DP
         num_suppliers = sum(x_3DP);
         supplier_subset_idx = x_3DP;
         Monthly_Weight_3scenarios = Monthly_Weight_3scenarios_all(supplier_subset_idx, :);
@@ -700,11 +573,11 @@ for i = 1 : length(speed_per_machine_month)
         v = v_all(supplier_subset_idx);         
         h = h_all(supplier_subset_idx);  
         weight = weight_all(supplier_subset_idx);
-    
+
         capacity_percentage = capacity_3dp_percentage(kkk);
-        K_3DP_medium = capacity_percentage*sum(max(Monthly_Weight_3scenarios'));
-        
-        %% First sample (D,s)
+        K_3DP_medium = capacity_percentage * sum(max(Monthly_Weight_3scenarios'));
+
+        % Generate demand and disruption samples
         input_preprocess_medium_sampled.num_suppliers = num_suppliers;
         input_preprocess_medium_sampled.num_scenarios = num_scenarios;
         input_preprocess_medium_sampled.yield_loss_rate = yield_loss_rate_medium;
@@ -713,8 +586,8 @@ for i = 1 : length(speed_per_machine_month)
         input_preprocess_medium_sampled.Demand_Probability = Demand_Probability_3scenarios;
         
         input_preprocess_medium_sampled.sample_mode = 2;
-        input_preprocess_medium_sampled.disruption_sample_flag = 1; % We don't sample disruption (keep all combinations)
-        input_preprocess_medium_sampled.demand_sample_flag = 1;     % For each disruption scenario, sample a fixed number of demand combos
+        input_preprocess_medium_sampled.disruption_sample_flag = 1; % No sampling of disruptions (keep all combinations)
+        input_preprocess_medium_sampled.demand_sample_flag = 1;     % Sample a fixed number of demand values per disruption scenario
         
         disruption_samplesize_saa = 1000;    
         demand_samplesize_saa = 100;            
@@ -728,162 +601,145 @@ for i = 1 : length(speed_per_machine_month)
         failure_data_medium_sampled = output_preprocess_medium_sampled.failure_data;
         demand_data_medium_sampled = output_preprocess_medium_sampled.demand_data;
         
-        %% For each combo of (D,s), calculate the demand shortfall
+        % Compute demand shortfall for each (D,s) pair
         input_b2b.x = logical(ones(sum(x_3DP), 1));
         input_b2b.c_3DP = c_3DP;
         input_b2b.v = v;
         input_b2b.h = h;
         input_b2b.weight = weight;
         input_b2b.K_3DP = K_3DP_medium;
-    
-        for ss = 1 : length(disruption_demand_joint_prob_medium_sampled)
-            
-            % if mod(ss,1e5) == 1
-            %     fprintf("K case %d;   Sample case %d   \n",  kkk, ss)
-            % end
-    
+
+        for ss = 1:length(disruption_demand_joint_prob_medium_sampled)
             D_sample = demand_data_medium_sampled(:, ss); 
             s_sample = failure_data_medium_sampled(:, ss);   
-            D_bar = D_sample - q_SP.*s_sample;
+            D_bar = D_sample - q_SP .* s_sample;
             input_b2b.D_bar = D_bar;
     
             output_b2b = V3DP_b2b(input_b2b);
             q_3DP = output_b2b.q_3DP;
             
-            Demand_shotfall_varying_C3DP{i,j}(ss) = sum( max( D_bar - q_3DP, 0 ) );
-    
+            Demand_shortfall_varying_C3DP{i, j}(ss) = sum(max(D_bar - q_3DP, 0));
         end
-       
-
-
     end
 end
 
-%% Get the relative demand shortfall (relative to total max demand)
+
+
+
+
+%% COMPUTING RELATIVE DEMAND SHORTFALL ANALYSIS
+
+% Compute relative demand shortfall (percentage of total max demand)
 Relative_Demand_shortfall_varying_C3DP = {};
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-        Relative_Demand_shortfall_varying_C3DP{i,j} = Demand_shotfall_varying_C3DP{i,j}/sum(max(Monthly_Quantity_3scenarios_all'))*100;
+for i = 1:length(speed_per_machine_month)  
+    for j = 1:length(cost_of_3dp_per_machine_month)
+        Relative_Demand_shortfall_varying_C3DP{i,j} = Demand_shotfall_varying_C3DP{i,j} / sum(max(Monthly_Quantity_3scenarios_all')) * 100;
     end
 end
-Relative_Demand_shortfall_no3DP_Benchmark  = Demand_shortfall_no3DP_Benchmark/sum(max(Monthly_Quantity_3scenarios_all'))*100;
+Relative_Demand_shortfall_no3DP_Benchmark = Demand_shortfall_no3DP_Benchmark / sum(max(Monthly_Quantity_3scenarios_all')) * 100;
 
-
-%% First get feeling of what the histogram looks like 
-%% Historgarm of demand shortfall with no 3DP
+% HISTOGRAM PLOTS
+% Demand shortfall histogram for the system without 3DP
 figure;
-histogram(Relative_Demand_shortfall_no3DP_Benchmark, 'Normalization', 'probability');%, 'BinWidth', 0.05);
+histogram(Relative_Demand_shortfall_no3DP_Benchmark, 'Normalization', 'probability');
 
 xlabel('Shortfall (% of Max. Demand)', 'FontSize', 12);
 ylabel('Probability', 'FontSize', 12);
 xt = xticks;
 xticklabels(strcat(string(xt), '%'));
 
-% xlim([0,10])
-% ylim([0,0.3])
-
 saveas(gcf, 'Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs(Shortfalls)/histogram_no3dp.pdf');
 close(gcf)
 
-%% Histogram of demand shortfall with 3DP under different c_cap
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
+% Demand shortfall histograms for different c_cap values with 3DP
+for i = 1:length(speed_per_machine_month)  
+    for j = 1:length(cost_of_3dp_per_machine_month)
         
         figure;
-        histogram(Relative_Demand_shortfall_varying_C3DP{i,j}, 'Normalization', 'probability');%, 'BinWidth', 0.05);
+        histogram(Relative_Demand_shortfall_varying_C3DP{i,j}, 'Normalization', 'probability');
         
         xlabel('Shortfall (% of Max. Demand)', 'FontSize', 12);
         ylabel('Probability', 'FontSize', 12);
         xt = xticks;
         xticklabels(strcat(string(xt), '%'));
-    
-        % xlim([0,10])
-        % ylim([0,0.3])
         
         filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs(Shortfalls)/histogram_3dp_varying_C3DP_case', num2str(i), '_', num2str(j), '.pdf');
         saveas(gcf, filename);
         close(gcf)
-
     end
 end
 
+% BOX PLOTS OF DEMAND SHORTFALL DISTRIBUTIONS
+% Compare different c_cap values side by side
+bbb = cost_of_3dp_per_machine_month(1) / speed_per_machine_month(1);
 
-%% Now let's draw the box plots of the distributions
-%% First, list box plots side by side
-bbb = cost_of_3dp_per_machine_month(1)/speed_per_machine_month(1);
+for i = 1:length(speed_per_machine_month)  
 
-for i = 1 : length(speed_per_machine_month)  
-
-    % Initialize tick labels array
+    % Initialize tick labels
     tick_labels = cell(1, length(cost_of_3dp_per_machine_month) + 1);
     
-    % Populate tick labels with 'multiples(i,j)x' for j=1:end-1
+    % Generate boxplots for varying c_cap
     for j = 1:length(cost_of_3dp_per_machine_month)
-        multiples(i,j) = (cost_of_3dp_per_machine_month(j)/speed_per_machine_month(i)) / bbb;
+        multiples(i,j) = (cost_of_3dp_per_machine_month(j) / speed_per_machine_month(i)) / bbb;
         boxplot(Relative_Demand_shortfall_varying_C3DP{i,j}, 'Positions', j, 'Widths', 0.5);
-        tick_labels{j} = strcat(num2str(multiples(i,j), '%.2f'), 'x');  % Format with two decimals
+        tick_labels{j} = strcat(num2str(multiples(i,j), '%.2f'), 'x');  
         hold on;
     end
-    % Add the last boxplot for 'No 3DP'
-    boxplot(Relative_Demand_shortfall_no3DP_Benchmark, 'Positions', length(cost_of_3dp_per_machine_month)+1 , 'Widths', 0.5);
-    
-    % Set the last tick label as 'No 3DP'
+
+    % Add the reference boxplot for 'No 3DP'
+    boxplot(Relative_Demand_shortfall_no3DP_Benchmark, 'Positions', length(cost_of_3dp_per_machine_month) + 1 , 'Widths', 0.5);
     tick_labels{end} = 'No 3DP';
-    % Apply tick positions and labels
+    
+    % Set axis labels and formatting
     xticks(1:length(tick_labels)); 
     xticklabels(tick_labels);
-
-    xlabel('$c^{\mathsf{cap}}$ (Multiple of Baseline)', 'FontSize', 12, 'interpreter', 'latex');
+    xlabel('$c^{\mathsf{cap}}$ (Multiple of Baseline)', 'FontSize', 12, 'Interpreter', 'latex');
     ylabel('Shortfall (% of Max Demand)', 'FontSize', 12);
     ytickformat('percentage');
     grid on;
     
-    % Plot the mean shortdemand
+    % Plot the mean demand shortfall
     for j = 1:length(cost_of_3dp_per_machine_month)
         Mean_Relative_Demand_shortfall_varying_C3DP(i,j) = mean(Relative_Demand_shortfall_varying_C3DP{i,j});
     end
-    plot([1:length(cost_of_3dp_per_machine_month)+1], [Mean_Relative_Demand_shortfall_varying_C3DP(i,:), mean(Relative_Demand_shortfall_no3DP_Benchmark) ], ...
-        '-o', 'LineWidth',2)
+    plot([1:length(cost_of_3dp_per_machine_month) + 1], [Mean_Relative_Demand_shortfall_varying_C3DP(i,:), mean(Relative_Demand_shortfall_no3DP_Benchmark)], ...
+        '-o', 'LineWidth', 2);
 
     filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs(Shortfalls)/boxplots_3dp_varying_C3DP_fixed_speed', num2str(i), '.pdf');
     saveas(gcf, filename);
     close(gcf)
 
-
 end
-    
-%% Let the c_cap associated with speed case 1 and cost per machine case 1 be the baseline
-%% Draw the box plots of the distribution of demand shortfall, and the mean demand shortfall of the following cases:
-%%      - 0.2x, 0.4x, 1x, 3x, 5x, no3DP cases
+
+%% Define the baseline c_cap using speed case 1 and cost per machine case 1
+%% Generate box plots for demand shortfall distributions and mean demand shortfall for the following cases:
+%%      - 0.2x, 0.4x, 1x, 3x, 5x, No 3DP
 
 C3DP_subset = [3,1; 2,1; 1,1; 1,3; 1,7];
 
 tick_labels = {'0.2x', '0.4x', '1x', '3x', '5x', 'No 3DP'};
 
 Mean_Relative_Demand_shortfall_varying_C3DP_subset = [];
-for ll = 1 : length(C3DP_subset)
+for ll = 1:length(C3DP_subset)
     ttt = C3DP_subset(ll,:);
     i = ttt(1);
     j = ttt(2);
     Mean_Relative_Demand_shortfall_varying_C3DP_subset(ll) = Mean_Relative_Demand_shortfall_varying_C3DP(i,j);
 end
-plot([1:length(C3DP_subset)+1], [Mean_Relative_Demand_shortfall_varying_C3DP_subset, mean(Relative_Demand_shortfall_no3DP_Benchmark) ], ...
-    '-o', 'LineWidth',2)
+plot([1:length(C3DP_subset)+1], [Mean_Relative_Demand_shortfall_varying_C3DP_subset, mean(Relative_Demand_shortfall_no3DP_Benchmark)], ...
+    '-o', 'LineWidth', 2)
 hold on
 
-
-for ll = 1 : length(C3DP_subset)
-
+for ll = 1:length(C3DP_subset)
     ttt = C3DP_subset(ll,:);
     i = ttt(1);
     j = ttt(2);
     
     boxplot(Relative_Demand_shortfall_varying_C3DP{i,j}, 'Positions', ll, 'Widths', 0.5);
     hold on
-
 end
 
-% Add the last boxplot for 'No 3DP'
+% Add boxplot for 'No 3DP'
 boxplot(Relative_Demand_shortfall_no3DP_Benchmark, 'Positions', length(C3DP_subset)+1 , 'Widths', 0.5);
 
 xticks(1:length(tick_labels)); 
@@ -894,18 +750,15 @@ ylabel('Shortfall (% of Max Demand)', 'FontSize', 12);
 ytickformat('percentage');
 grid on;
     
-legend({'Mean Deamnd Shortfall', 'Distribution of Demand Shortfall'})
-
+legend({'Mean Demand Shortfall', 'Distribution of Demand Shortfall'})
 
 filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark_Varying_C3DP_Coeffs(Shortfalls)/boxplots_3dp_varying_C3DP_all_in_one.pdf');
 saveas(gcf, filename);
 close(gcf)
 
-
-
-%% Save the data for python
+%% Save data for Python analysis
 % Initialize arrays for means and boxplot data
-Mean_Shortfall_python = [];  % Renamed to avoid overwriting
+Mean_Shortfall_python = [];  
 boxplot_data = [];
 
 % Collect mean data for each subset
@@ -913,9 +766,10 @@ for ll = 1:length(C3DP_subset)
     ttt = C3DP_subset(ll,:);
     i = ttt(1);
     j = ttt(2);
-    Mean_Shortfall_python(ll) = Mean_Relative_Demand_shotfall_varying_C3DP(i,j);
+    Mean_Shortfall_python(ll) = Mean_Relative_Demand_shortfall_varying_C3DP(i,j);
+    
     % Collect boxplot data for this subset
-    current_data = Relative_Demand_shotfall_varying_C3DP{i, j};
+    current_data = Relative_Demand_shortfall_varying_C3DP{i, j};
     boxplot_data = [boxplot_data; [repmat(ll, length(current_data), 1), current_data(:)]];
 end
 
@@ -985,26 +839,54 @@ writetable(boxplot_table, 'Experiment_Data/Relative_Cost_Savings_Shortfalls/benc
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+%% Series of Experiments: "Experiments_CostSavings_and_DemandShortfalls"  
+% We conduct a series of experiments using files with the prefix  "Experiments_CostSavings_and_DemandShortfalls" 
+% to study the impact of hyperparameters on the performance of the 3DP resilience strategy. 
+
+
+%% Key hyperparameters and their default values:  
+%   - **c_cap** (per-unit fixed cost of 3DP reservation):  
+%     Default = cost_of_3dp_per_machine_month(1) / speed_per_machine_month(1).  
+%   - **c_3DP**: Default = c_source.  
+%   - **(p, yield_loss_rate)**: Default = (0.05, 0.05).  
+%   - **Correlation among disruptions**: Default = independent.  
+%  
+% Performance of the 3DP resilience strategy is evaluated based on:  
+%   - **Cost savings**  
+%   - **Reduction in demand shortfalls**  
+  
+
+%% In this experiment, we focus on analyzing the impact of **c_3DP**,  
+% where **c_3DP** varies as follows: 0.5x, 1x, 2x, 3x of baseline
+% (NOTE: the 1x baseline case was already computed in "Experiments_CostSavings_and_DemandShortfalls_Varying_C3DP")
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% DIFFERENT c_3DP: COMPUTATION
+% VARYING c_3DP: COMPUTATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% NOW WE TRY DIFFERENT c_3DP
 %%  - baseline is c_3DP = c_source and c_TM = 0.5 * c_source
-%%  - we can try: c_3DP = r * c_source, where r = 0.2, 2, 3 
+%%  - we can try: c_3DP = r * c_source, where r = 0.5, 2, 3 
 %%          - NOTE WE CAN'T LET c_3DP > 3 * c_source, in such case some products will never be 3DP backed-up)
-%%          - when r = 0.2, we let c_TM = 0.1*c_source instead
 
-c_3DP_rate_set = [0.5,2,3];
-
-fileID2 = fopen('Log5.txt', 'a'); % 'a' mode appends to the file
+c_3DP_rate_set = [0.5, 2, 3];
 
 OUTPUT_MEDIUM_BOE_VARYING_c3DP = {};
 COST_TMONLY_VARYING_c3DP = {};
 
-for ll = 1 : length(c_3DP_rate_set)
-
-
+for ll = 1:length(c_3DP_rate_set)
 
     num_suppliers = num_suppliers_all;
     supplier_subset_idx = false(num_suppliers_all, 1);
@@ -1024,20 +906,8 @@ for ll = 1 : length(c_3DP_rate_set)
     c_3DP = c_3DP_rate_set(ll) * c_source; 
     c_TM = 0.5 * c_source;   
     
-    % if ll == 1
-    %     c_3DP = c_3DP_rate_set(ll) * c_source; 
-    %     c_TM = 0.1 * c_source;      
-    % else
-    %     c_3DP = c_3DP_rate_set(ll) * c_source; 
-    %     c_TM = 0.5 * c_source;   
-    % end
-
-    %% (PART OF PRE-PROCESSING) Compute the costs of each supplier when they are
-    %% - Backed-up by TM 
-    %% - No back-up at all 
-    %% - Backed-up by 3DP but inf. capacity
-    % Medium disruptions
-    % Without backup (op. and total costs: individual product and sum)
+    %% Compute supplier costs under different backup strategies:
+    % 1. No backup
     input_medium_no3dp.n = num_suppliers;
     input_medium_no3dp.v = v;
     input_medium_no3dp.h = h;
@@ -1049,29 +919,26 @@ for ll = 1 : length(c_3DP_rate_set)
     input_medium_no3dp.TM_flag = 0;
     output_medium_no3dp = Cost_No3DP_or_TM(input_medium_no3dp);
             
-    % All backed-up by 3DP (inf. capacity, we only care about the solution)
+    % 2. Backup with 3DP (infinite capacity)
     input_medium_3DP_infK = input_medium_no3dp;
     input_medium_3DP_infK.v = c_3DP;
     output_medium_3DP_infK = Cost_No3DP_or_TM(input_medium_3DP_infK);
     
-    % All backed-up by TM (op. and total costs: individual product and sum)
+    % 3. Backup with TM
     TM_retainer_ratio = 0.75;
-    C_TM = TM_retainer_ratio*c_source.*mean_demand_3scenarios;
+    C_TM = TM_retainer_ratio * c_source .* mean_demand_3scenarios;
     input_medium_TM = input_medium_no3dp;
     input_medium_TM.TM_flag = 1;
     input_medium_TM.c_TM = c_TM; 
     input_medium_TM.C_TM = C_TM; 
     output_medium_TM = Cost_No3DP_or_TM(input_medium_TM);
     
-    
-    
-    %% The products that are originally backed-up by TM
+    %% Identify products originally backed up by TM
     TM_backup_set = output_medium_TM.TM_cost < output_medium_no3dp.opt_val;
     nobackup_set = 1 - TM_backup_set;
-    COST_TMONLY_VARYING_c3DP{ll} = sum(output_medium_TM.TM_cost(TM_backup_set))+sum(output_medium_no3dp.opt_val(logical(nobackup_set)));
+    COST_TMONLY_VARYING_c3DP{ll} = sum(output_medium_TM.TM_cost(TM_backup_set)) + sum(output_medium_no3dp.opt_val(logical(nobackup_set)));
     
-            
-    %% Sample some data for BoE Submod Max SAA
+    %% Sample data for BoE Submodular Maximization
     input_preprocess_medium_sampled.num_suppliers = num_suppliers;
     input_preprocess_medium_sampled.num_scenarios = num_scenarios;
     input_preprocess_medium_sampled.yield_loss_rate = yield_loss_rate_medium;
@@ -1080,9 +947,10 @@ for ll = 1 : length(c_3DP_rate_set)
     input_preprocess_medium_sampled.Demand_Probability = Demand_Probability_3scenarios;
     
     input_preprocess_medium_sampled.sample_mode = 2;
-    input_preprocess_medium_sampled.disruption_sample_flag = 1; % We don't sample disruption (keep all combinations)
-    input_preprocess_medium_sampled.demand_sample_flag = 1;     % For each disruption scenario, sample a fixed number of demand combos
+    input_preprocess_medium_sampled.disruption_sample_flag = 1; % No disruption sampling (keep all combinations)
+    input_preprocess_medium_sampled.demand_sample_flag = 1;     % Sample a fixed number of demand combinations per disruption scenario
     
+    % Set sample sizes based on supplier count
     if num_suppliers < 20
         demand_samplesize_saa = 200;
         disruption_samplesize_saa = 100;
@@ -1100,7 +968,6 @@ for ll = 1 : length(c_3DP_rate_set)
     input_preprocess_medium_sampled.demand_num_per_disruption = demand_samplesize_saa;
     input_preprocess_medium_sampled.disruption_samplesize = disruption_samplesize_saa;
     
-    
     output_preprocess_medium_sampled = Data_prep_for_MIP(input_preprocess_medium_sampled);
     
     disruption_demand_joint_prob_medium_sampled = output_preprocess_medium_sampled.disruption_demand_joint_prob;
@@ -1111,36 +978,27 @@ for ll = 1 : length(c_3DP_rate_set)
     input_boe.failure_data = failure_data_medium_sampled;
     input_boe.demand_data = demand_data_medium_sampled;
     
-            
-            
-            
-            
-    %% Prepare data for BoE Submod Max
+    %% Prepare data for BoE Submodular Maximization
     Obj_const = - output_medium_no3dp.opt_val;
-    U0_with_vmean = output_medium_no3dp.opt_val + v.*mean_demand_3scenarios;
+    U0_with_vmean = output_medium_no3dp.opt_val + v .* mean_demand_3scenarios;
     U0_no_vmean = output_medium_no3dp.opt_val;
     TM_Delta = output_medium_TM.TM_cost - output_medium_no3dp.opt_val;
     
-    ratio_over_weight = (v-c_3DP)./weight;
+    ratio_over_weight = (v - c_3DP) ./ weight;
     
-    % Optimal primal ordering when no backup
+    % Optimal ordering when no backup
     q0 = output_medium_no3dp.opt_q;
     
-    % Compute the probability that [Dj - q0_j*s_j]^+ > 0 and == 0 (The probability of having unfilled demand)
-    % - Call P([Dj - q0_j*s_j]^+ > 0) "pi_p"
-    % - Call P([Dj - q0_j*s_j]^+ = 0) "pi_0"
-    
+    % Compute probabilities of unfulfilled demand
     pi_p = [];
     pi_0 = [];
     
-    for j = 1 : num_suppliers
-        
-        tmp1 = max(0, Monthly_Quantity_3scenarios(j,:)' - q0(j)*[1-yield_loss_rate_medium, 1]);
-        tmp2 = Demand_Probability_3scenarios(j,:)'*[p_medium, 1-p_medium];
+    for j = 1:num_suppliers
+        tmp1 = max(0, Monthly_Quantity_3scenarios(j,:)' - q0(j) * [1 - yield_loss_rate_medium, 1]);
+        tmp2 = Demand_Probability_3scenarios(j,:)' * [p_medium, 1 - p_medium];
     
         pi_p(j,:) = sum(sum(tmp2(tmp1 > 1e-5)));
         pi_0(j,:) = sum(sum(tmp2(tmp1 <= 1e-5)));
-        
     end
     
     input_boe.U0_with_vmean = U0_with_vmean;
@@ -1173,80 +1031,36 @@ for ll = 1 : length(c_3DP_rate_set)
     input_boe.h = h;
     input_boe.weight = weight;
     
-    input_boe.q_ub = output_medium_no3dp.opt_q;    % HERE WE ADD BOUNDS FOR 1ST STAGE DECISIONS
-    input_boe.q_lb = output_medium_3DP_infK.opt_q; % HERE WE ADD BOUNDS FOR 1ST STAGE DECISIONS
+    input_boe.q_ub = output_medium_no3dp.opt_q;  % Upper bound for 1st-stage decisions
+    input_boe.q_lb = output_medium_3DP_infK.opt_q;  % Lower bound for 1st-stage decisions
     
-         
+    %% Iterate over different 3DP capacities
+    for k = 1:length(capacity_3dp_percentage)
     
-    for k = 1 : length(capacity_3dp_percentage)
-    
-        fprintf("%3.2f Percent of Max Yield Shortfall \n\n", capacity_3dp_percentage(k)*100)
+        fprintf("%3.2f Percent of Max Yield Shortfall \n\n", capacity_3dp_percentage(k) * 100);
     
         capacity_percentage = capacity_3dp_percentage(k);
-        K_3DP_medium = capacity_percentage*sum(max(Monthly_Weight_3scenarios'));
-        C_3DP_medium = (K_3DP_medium./speed_per_machine_month)'*cost_of_3dp_per_machine_month;
+        K_3DP_medium = capacity_percentage * sum(max(Monthly_Weight_3scenarios'));
+        C_3DP_medium = (K_3DP_medium ./ speed_per_machine_month)' * cost_of_3dp_per_machine_month;
         
         input_boe.K_3DP = K_3DP_medium;
         input_boe.C_3DP = C_3DP_medium;
     
-        input_boe.add_max_pivot_rule = 1;
-        input_boe.delete_max_pivot_rule = 0;
-    
-        input_boe.GRB_display = 0;
-    
         input_boe.auto_recompute = 1;
         
-        input_boe.recompute_flag = 1;
-    
-        input_boe.recompute_sample_mode = 1;
-        input_boe.recompute_disruption_sample_flag = 0;
-        input_boe.recompute_demand_sample_flag = 0;
-        
-        input_boe.recompute_disruption_samplesize_eval = 1000;
-        input_boe.recompute_demand_samplesize_eval = 500; 
-        input_boe.recompute_disruption_samplesize_finaleval = 1000;
-        input_boe.recompute_demand_samplesize_finaleval = 500;
-    
-        input_boe.recompute_sgd_Maxsteps = 5e5;
-        
-        if k == 1
-            input_boe.A_init = [];
-        else
-            input_boe.A_init = OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll, k-1}.A_t;
-        end
-    
         if num_suppliers <= 10
             output_boe = BoE_Approx_Max_Submod_Exact(input_boe);
         else
             output_boe = BoE_Approx_Max_Submod_SAA(input_boe);
         end
-        
-    
-        % input_boe.A_init = [1:num_suppliers];
-        % output_boe2 = BoE_Approx_Max_Submod1(input_boe);
-        % 
-        % if output_boe1.TOTAL_COST(1,1) <  output_boe2.TOTAL_COST(1,1) 
-        %     output_boe = output_boe1;
-        % else
-        %     output_boe = output_boe2;
-        % end
     
         OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll, k} = output_boe; 
-        % TIME_BOE(k) = output_boe.solving_time;
     
-    
-        fprintf(fileID2, 'c_3DP = %3.2f * c_source,    k=%3.2f %% \n', c_3DP_rate_set(ll), capacity_3dp_percentage(k));
-        fprintf(fileID2, '3DP Set: %d', OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll, k}.A_t);
-        fprintf(fileID2, '\n\n')
-    
-    
-    
-        disp("TO NEXT ONE! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ")
+        disp("TO NEXT ONE! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
     
     end
 
 end
-
 
 save("Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_c3DP.mat")
 
@@ -1286,6 +1100,19 @@ for ll = 1 : length(c_3DP_rate_set)
     end
 
 end
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% VARYING c_3DP: PLOT COST-SAVINGS VS. K
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% NOTE: These plots are for initial verification. The final plots in the paper are generated in Python using the data saved here.
 
 %% Plot Cost Savings: 
 %%      - For each combo of "speed_per_machine_month" and "cost_of_3dp_per_machine_month"
@@ -1364,9 +1191,6 @@ close(gcf)
 
 
 
-
-
-
 %% Save the data for CSV and PYTHON
 % Prepare the data
 % Prepare the X-axis data (capacity percentages)
@@ -1413,54 +1237,57 @@ fprintf('Data saved to %s\n', csv_filename);
 
 
 
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% BASED-LINE CASE: PLOT DEMAND SHORTFALLS
+% VARYING c3DP: PLOT DEMAND SHORTFALLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% SINGLE system: No 3DP
-%%      - Get the set of products not backedup A0
-%%      - Sample pairs of demand and disruptions
-%%      - For each sample (D, s), calculate [D_j - q_j*s_j]^+ and sum over j in A0
-%%      - Save the disrbtuionn as a vector
+%  - Identify the set of products without backup (A0)
+%  - Sample pairs of demand and disruptions
+%  - For each sample (D, s), compute [D_j - q_j * s_j]^+ and sum over j in A0
+%  - Store the demand shortfall distribution as a vector
 
-%% Get the demand shortfall of the following cases from existing results
-%%      - No 3DP (regardless of c_3DP or C3DP)
-%%      - Benchmark c_3DP case (all C3DP)
+%% Retrieve demand shortfall results for:
+%  - No 3DP (independent of c_3DP or C3DP)
+%  - Benchmark c_3DP case (all C3DP)
 DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark.mat");
 Relative_Demand_shortfall_no3DP_Benchmark = DDD.Relative_Demand_shortfall_no3DP_Benchmark;
 Relative_Demand_shortfall_varying_C3DP = DDD.Relative_Demand_shortfall_varying_C3DP;
 
-%% DUO system: After 3DP
-%%      - For each capacity K on a grid 
-%%      - Get the set of products backedup-by 3DP A
-%%      - Sample pairs of demand and disruptions
-%%      - For each sample (D, s), calculate optimal 3DP decision q3DP(D,s) and [D_j - q_j*s_j - q_j^3DP(D,s)]^+ and sum over j in A
-%%      - Save the disribution as a vector
+%% DUO system: With 3DP backup
+%  - Iterate over a grid of 3DP capacities (K)
+%  - Identify the set of products backed up by 3DP (A)
+%  - Sample pairs of demand and disruptions
+%  - For each sample (D, s), compute the optimal 3DP decision q3DP(D, s) and [D_j - q_j * s_j - q_j^3DP(D, s)]^+ and sum over j in A
+%  - Store the demand shortfall distribution as a vector
 
-%% Two important notes:
-%%      - For the same K, the deamnd shortfall is the same for all c_cap (q_SP is the same)
-%%      - But different c_cap has different opitmla K hence different demand shortfall 
+%% Important notes:
+%  - For a given K, the demand shortfall remains the same across all c_cap values (q_SP is unchanged)
+%  - Different c_cap values lead to different optimal K values, affecting the demand shortfall
 
-%% In what follows, we first fix a c_cap case, and then compute the demand shortall distribution for each of c_3DP case:
-%%      - for each c_3DP (under the fixed c_cap), we find the optimal K (max. cost savings)
-%%      - retrieve the x and q_SP at the opt K, and comupute demand shortfall
-%% (TRUST the cost and q_SP computed by SGD)
+%% Compute demand shortfall distributions for each c_3DP case under a fixed c_cap:
+%  - For each c_3DP (under fixed c_cap), find the optimal K (max cost savings)
+%  - Retrieve x and q_SP at the optimal K and compute demand shortfall
+%  - The cost and q_SP values are derived from SGD
 
-Demand_shotfall_varying_c3DP = {};
+Demand_shortfall_varying_c3DP = {};
 
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
+for i = 1:length(speed_per_machine_month)
+    for j = 1:length(cost_of_3dp_per_machine_month)
         
-        fprintf("Working with case %d, %d\n\n", i,j)
+        fprintf("Processing case %d, %d\n", i, j)
 
-        for ll = 1 : length(c_3DP_rate_set)
+        for ll = 1:length(c_3DP_rate_set)
 
-            %% Get the optimal x and q_SP
-            [~,kkk] = max(COST_SAVINGS_VARYING_c_3DP{ll,i,j});
-            x_3DP = logical(OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll,kkk}.X_FINAL{i,j});
-            q_SP = OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll,kkk}.Q_FINAL{i,j}(x_3DP);
+            %% Retrieve the optimal x and q_SP
+            [~, kkk] = max(COST_SAVINGS_VARYING_c_3DP{ll, i, j});
+            x_3DP = logical(OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll, kkk}.X_FINAL{i, j});
+            q_SP = OUTPUT_MEDIUM_BOE_VARYING_c3DP{ll, kkk}.Q_FINAL{i, j}(x_3DP);
 
-            %% Preparation
+            %% Data preparation
             num_suppliers = sum(x_3DP);
             supplier_subset_idx = x_3DP;
             Monthly_Weight_3scenarios = Monthly_Weight_3scenarios_all(supplier_subset_idx, :);
@@ -1469,17 +1296,16 @@ for i = 1 : length(speed_per_machine_month)
             mean_demand_3scenarios = mean_demand_3scenarios_all(supplier_subset_idx);
                    
             c_source = c_source_all(supplier_subset_idx);        
-            c_3DP = c_3DP_all(supplier_subset_idx)*c_3DP_rate_set(ll); 
+            c_3DP = c_3DP_all(supplier_subset_idx) * c_3DP_rate_set(ll); 
             c_TM = c_TM_all(supplier_subset_idx);   
             v = v_all(supplier_subset_idx);         
             h = h_all(supplier_subset_idx);  
             weight = weight_all(supplier_subset_idx);
         
             capacity_percentage = capacity_3dp_percentage(kkk);
-            K_3DP_medium = capacity_percentage*sum(max(Monthly_Weight_3scenarios'));
+            K_3DP_medium = capacity_percentage * sum(max(Monthly_Weight_3scenarios'));
 
-
-            %% First sample (D,s)
+            %% Sample (D, s) pairs
             input_preprocess_medium_sampled.num_suppliers = num_suppliers;
             input_preprocess_medium_sampled.num_scenarios = num_scenarios;
             input_preprocess_medium_sampled.yield_loss_rate = yield_loss_rate_medium;
@@ -1488,8 +1314,8 @@ for i = 1 : length(speed_per_machine_month)
             input_preprocess_medium_sampled.Demand_Probability = Demand_Probability_3scenarios;
             
             input_preprocess_medium_sampled.sample_mode = 2;
-            input_preprocess_medium_sampled.disruption_sample_flag = 1; % We don't sample disruption (keep all combinations)
-            input_preprocess_medium_sampled.demand_sample_flag = 1;     % For each disruption scenario, sample a fixed number of demand combos
+            input_preprocess_medium_sampled.disruption_sample_flag = 1; % No disruption sampling (keep all combinations)
+            input_preprocess_medium_sampled.demand_sample_flag = 1;     % Sample a fixed number of demand values per disruption scenario
             
             disruption_samplesize_saa = 1000;    
             demand_samplesize_saa = 100;            
@@ -1503,7 +1329,7 @@ for i = 1 : length(speed_per_machine_month)
             failure_data_medium_sampled = output_preprocess_medium_sampled.failure_data;
             demand_data_medium_sampled = output_preprocess_medium_sampled.demand_data;
             
-            %% For each combo of (D,s), calculate the demand shortfall
+            %% Compute demand shortfall for each (D, s) pair
             input_b2b.x = logical(ones(sum(x_3DP), 1));
             input_b2b.c_3DP = c_3DP;
             input_b2b.v = v;
@@ -1511,21 +1337,17 @@ for i = 1 : length(speed_per_machine_month)
             input_b2b.weight = weight;
             input_b2b.K_3DP = K_3DP_medium;
         
-            for ss = 1 : length(disruption_demand_joint_prob_medium_sampled)
+            for ss = 1:length(disruption_demand_joint_prob_medium_sampled)
                 
-                % if mod(ss,1e5) == 1
-                %     fprintf("K case %d;   Sample case %d   \n",  kkk, ss)
-                % end
-        
                 D_sample = demand_data_medium_sampled(:, ss); 
                 s_sample = failure_data_medium_sampled(:, ss);   
-                D_bar = D_sample - q_SP.*s_sample;
+                D_bar = D_sample - q_SP .* s_sample;
                 input_b2b.D_bar = D_bar;
         
                 output_b2b = V3DP_b2b(input_b2b);
                 q_3DP = output_b2b.q_3DP;
                 
-                Demand_shotfall_varying_c3DP{i,j,ll}(ss) = sum( max( D_bar - q_3DP, 0 ) );
+                Demand_shortfall_varying_c3DP{i, j, ll}(ss) = sum(max(D_bar - q_3DP, 0));
         
             end
 
@@ -1710,16 +1532,45 @@ writetable(boxplot_table, 'Experiment_Data/Relative_Cost_Savings_Shortfalls/vary
 
 
 
+
+
+
+
+
+
+
+%% Series of Experiments: "Experiments_CostSavings_and_DemandShortfalls"  
+% We conduct a series of experiments using files with the prefix  "Experiments_CostSavings_and_DemandShortfalls" 
+% to study the impact of hyperparameters on the performance of the 3DP resilience strategy. 
+
+
+%% Key hyperparameters and their default values:  
+%   - **c_cap** (per-unit fixed cost of 3DP reservation):  
+%     Default = cost_of_3dp_per_machine_month(1) / speed_per_machine_month(1).  
+%   - **c_3DP**: Default = c_source.  
+%   - **(p, yield_loss_rate)**: Default = (0.05, 0.05).  
+%   - **Correlation among disruptions**: Default = independent.  
+%  
+% Performance of the 3DP resilience strategy is evaluated based on:  
+%   - **Cost savings**  
+%   - **Reduction in demand shortfalls**  
+  
+
+%% In this experiment, we focus on analyzing the impact of:
+%   - Marginal failure rate
+%   - Yieldloss ratio
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DISRUPTION MODELING (INDEPENDENT): COMPUTATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %% NOW WE TRY DIFFERENT DISRUPTION MODELING (INDEPENDENT)
-%%  - baseline is (p, yield_loss_rate) = (0.05, 0.05)
-%%  - we can try: 
-%%          - p = 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5
-%%          - yield_loss_rate = 0.05,  0.25,  0.5,  0.75
+%  - baseline is (p, yield_loss_rate) = (0.05, 0.05)
+%  - we can try: 
+%          - p = 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5
+%          - yield_loss_rate_set = 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7
 
 
 p_set = [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
@@ -1729,7 +1580,6 @@ yield_loss_rate_set = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7];
 OUTPUT_MEDIUM_BOE_VARYING_DISRUPTIONS = {};
 COST_TMONLY_VARYING_DISRUPTIONS = {};
 
-fileID3 = fopen('Log6.txt', 'a'); % 'a' mode appends to the file
 
 capacity_3dp_percentage = [1e-2, 1e-1*[1:9], 1:2:25, 30:5:50, 75, 100]/100;
 
@@ -1946,26 +1796,8 @@ for pp = 1 : length(p_set)
                 else
                     output_boe = BoE_Approx_Max_Submod_SAA(input_boe);
                 end
-                
-            
-                % input_boe.A_init = [1:num_suppliers];
-                % output_boe2 = BoE_Approx_Max_Submod1(input_boe);
-                % 
-                % if output_boe1.TOTAL_COST(1,1) <  output_boe2.TOTAL_COST(1,1) 
-                %     output_boe = output_boe1;
-                % else
-                %     output_boe = output_boe2;
-                % end
-            
+                          
                 OUTPUT_MEDIUM_BOE_VARYING_DISRUPTIONS{pp, yy, k} = output_boe; 
-                % TIME_BOE(k) = output_boe.solving_time;
-            
-            
-                fprintf(fileID3, 'Varying Disruption %d, %d,     k=%3.2f %% \n', pp,yy, capacity_3dp_percentage(k));
-                fprintf(fileID3, '3DP Set: %d ', OUTPUT_MEDIUM_BOE_VARYING_DISRUPTIONS{pp, yy, k}.A_t);
-                fprintf(fileID3, '\n\n');
-            
-            
             
                 disp("TO NEXT ONE! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ")
             
@@ -1979,9 +1811,7 @@ for pp = 1 : length(p_set)
 end
 
 
-% save("Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_DisruptionDistr_Ind_Comono_all_in_one.mat")
-
-
+save("Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_DisruptionDistr_Ind_Comono_all_in_one.mat")
 
 DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls/Benchmark.mat");
 
@@ -2016,231 +1846,33 @@ for pp = 1 : length(p_set)
 end
 
 
-%% Plot Cost-Savings 
-%% Always loop over all combos of "speed_per_machine_month" and "cost_of_3dp_per_machine_month"
-
-
-nColors1 = length(yield_loss_rate_set);
-nColors2 = length(p_set);
-defaultColors = lines(7); % Default colors for up to 7 lines
-if nColors1 <= 7
-    colors1 = defaultColors; % Use default colors if nColors <= 7
-else
-    colors1 = [defaultColors; rand(nColors1 - 7, 3)]; % Default for first 7, random for the rest
-end
-if nColors2 <= 7
-    colors2 = defaultColors; % Use default colors if nColors <= 7
-else
-    colors2 = [defaultColors; rand(nColors2 - 7, 3)]; % Default for first 7, random for the rest
-end
-
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-
-        %% First, fix p, then plot different curves of yield_loss_rate in one plot
-        for pp = 1 : length(p_set)
-
-            for yy = 1 : length(yield_loss_rate_set)
-
-                plot([0,capacity_3dp_percentage]*100, [0,COST_SAVINGS_VARYING_DISRUPTIONS{pp,yy,i,j}], '-o','LineWidth', 1, 'Color', colors1(yy,:))
-                hold on
-
-            end
-
-            xlim([0,100])
-            
-            lgd = legend({'0.2x Baseline', '1x Baseline', '2x Baseline', '4x Baseline', '6x Baseline', '8x Baseline', '10x Baseline', '12x Baseline', '14x Baseline'}, ...
-                'FontSize', 12, 'location', 'northeast');
-            title(lgd, 'Yield Loss Rate');
-          
-            filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/Varying_yield_loss', '_fixed_p_',num2str(pp), '_C3DP_CASE', num2str(i), num2str(j), '.pdf');
-            
-            ax = gca;
-            ax.XTickLabel = strcat(ax.XTickLabel, '%');
-            ax.YTickLabel = strcat(ax.YTickLabel, '%');
-
-            hold off
-            saveas(gcf,filename)  % as MATLAB figure
-            close(gcf)
-
-        end
-
-        %% Now, fix yield loss, then plot different curves of p in one plot
-        for yy = 1 : length(yield_loss_rate_set)
-
-            for pp = 1 : length(p_set)
-
-                plot([0,capacity_3dp_percentage]*100, [0,COST_SAVINGS_VARYING_DISRUPTIONS{pp,yy,i,j}], '-o','LineWidth', 1, 'Color', colors2(pp,:))
-                hold on
-
-            end
-
-            xlim([0,100])
-            
-            lgd = legend({'0.2x Baseline', '1x Baseline', '2x Baseline', '3x Baseline', '4x Baseline', '5x Baseline', '6x Baseline', '7x Baseline', '8x Baseline', '9x Baseline', '10x Baseline'}, ...
-                'FontSize', 12, 'location', 'northeast');
-            title(lgd, 'Marginal Disruption Rate');
-          
-            filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/Varying_p', '_fixed_yieldloss_',num2str(yy), '_C3DP_CASE', num2str(i), num2str(j), '.pdf');
-            
-            ax = gca;
-            ax.XTickLabel = strcat(ax.XTickLabel, '%');
-            ax.YTickLabel = strcat(ax.YTickLabel, '%');
-
-            hold off
-            saveas(gcf,filename)  % as MATLAB figure
-            close(gcf)
-
-        end
-
-
-    end
-end
-
-%% Now for each combo of "speed_per_machine_month" and "cost_of_3dp_per_machine_month"
-%% Compare the cost-savings under the followings:
-%%      - Very Frequent and large scale:          p=0.5, yield_loss=0.7
-%%      - Very Frequent and moderate scale:       p=0.5, yield_loss=0.4
-%%      - Very Frequent and small scale:          p=0.5, yield_loss=0.01
-%%      - Moderately Frequent and large scale:    p=0.3, yield_loss=0.7
-%%      - Moderately Frequent and moderate scale: p=0.3, yield_loss=0.4
-%%      - Moderately Frequent and small scale:    p=0.3, yield_loss=0.01
-%%      - Rare and large scale:                   p=0.01, yield_loss=0.7
-%%      - Rare and moderate scale:                p=0.01, yield_loss=0.4
-%%      - Rare and small scale:                   p=0.01, yield_loss=0.01
-
-% p_yield_combo = [7,3; 7,2; 7,1; 5,3; 5,2; 5,1; 1,3; 1,2; 1,1];
-% p_yield_combo = [7,4; 7,1; 1,4; 1,1];
-% p_yield_combo = [11,9; 11,6; 11,2; 5,9; 5,6; 5,2; 1,9; 1,6; 1,2];
-p_yield_combo = [11,9; 11,1; 6,6; 1,9; 1,1];
-% p_yield_combo = [7,6; 7,1; 5,4; 1,6; 1,1];
-
-
-nColors3 = length(p_yield_combo);
-defaultColors = lines(7); % Default colors for up to 7 lines
-if nColors3 <= 7
-    colors3 = defaultColors; % Use default colors if nColors <= 7
-else
-    colors3 = [defaultColors; rand(nColors3 - 7, 3)]; % Default for first 7, random for the rest
-end
-
-for combo = 1 : length(p_yield_combo)
-    plot([combo,combo],[0,10], 'Color', colors3(combo,:),'LineWidth',2)
-    hold on
-end
-xlim([-1,10])
-
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-
-        for combo = 1 : length(p_yield_combo)
-        
-            ttt = p_yield_combo(combo,:);
-            pp = ttt(1); yy = ttt(2);
-
-            plot([0,capacity_3dp_percentage]*100, [0,COST_SAVINGS_VARYING_DISRUPTIONS{pp,yy,i,j}], '-o','LineWidth', 1, 'Color', colors3(combo,:))
-            hold on
-        
-        end
-
-        xlim([0,100])
-        % lgd = legend({'High-High', 'High-Mid', 'High-Low', 'Mid-High', 'Mid-Mid', 'Mid-Low', 'Low-High', 'Low-Mid', 'Low-Low'}, 'FontSize', 12, 'Location', 'eastoutside');
-        lgd = legend({'High-High', 'High-Low', 'Mid-Mid', 'Low-High', 'Low-Low'}, 'FontSize', 12, 'location', 'southeast'); 
-        title(lgd, '(Freq, Yield Loss)');
-
-        filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/CHIGH_MID_LOW_C3DP_CASE', num2str(i), num2str(j), '.pdf');
-        
-        ax = gca;
-        ax.XTickLabel = strcat(ax.XTickLabel, '%');
-        ax.YTickLabel = strcat(ax.YTickLabel, '%');
-
-        hold off
-        saveas(gcf,filename)  % as MATLAB figure
-        close(gcf)
-
-    end
-end
 
 
 
-%% For each combo of "speed_per_machine_month" and "cost_of_3dp_per_machine_month", draw two plots
-%%      - (Plot 1) for each p, draw the the following curve: let yield loss rate increases, for each yield loss rate, get the max. cost savings among K
-%%      - (Plot 2) for each yield loss rate, draw the the following curve: let p increases, for each p, get the max. cost savings among K  
-
-COST_SAVINGS_VARYING_DISRUPTIONS_MAX_AMONG_K = {};
-
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-        
-        for yy = 1 : length(yield_loss_rate_set)
-            for pp = 1 : length(p_set)
-
-                COST_SAVINGS_VARYING_DISRUPTIONS_MAX_AMONG_K{i,j}(pp,yy) = max(COST_SAVINGS_VARYING_DISRUPTIONS{pp,yy,i,j});
-
-            end
-        end
-
-    end
-end
-
-p_subset = [1,6,11];
-yield_loss_rate_subset = [1,6,9];
-
-% p_subset = [1:length(p_set)];
-% yield_loss_rate_subset = [1:length(yield_loss_rate_set)];
-
-for i = 1 : length(speed_per_machine_month)  
-    for j = 1 : length(cost_of_3dp_per_machine_month)
-
-        %% Plot 1
-        for ppp = 1 : length(p_subset)
-            pp = p_subset(ppp);
-            plot(yield_loss_rate_set, COST_SAVINGS_VARYING_DISRUPTIONS_MAX_AMONG_K{i,j}(pp,:), '-o','LineWidth', 1, 'Color', colors2(ppp,:))
-            hold on
-        end
-        % lgd = legend({'0.2x Baseline', '1x Baseline', '2x Baseline', '3x Baseline', '4x Baseline', '5x Baseline', '6x Baseline', '7x Baseline', '8x Baseline', '9x Baseline', '10x Baseline'}, ...
-        %     'FontSize', 12, 'location', 'eastoutside');
-        lgd = legend({'1x Baseline', '5x Baseline', '10x Baseline'}, ...
-            'FontSize', 12, 'location', 'eastoutside');
-        title(lgd, 'Marginal Disruption Rate');
-        xlabel("Yield Loss Rate", 'FontSize',15)
-
-        filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/OOPTCOSTSAVINGS_FIXED_YIELDLOSS_CASE', num2str(i), num2str(j), '.pdf');
-        hold off
-        saveas(gcf,filename)  % as MATLAB figure
-        close(gcf)
-                  
-        %% Plot 2
-        for yyy = 1 : length(yield_loss_rate_subset)
-            yy = yield_loss_rate_subset(yyy);
-            plot(p_set, COST_SAVINGS_VARYING_DISRUPTIONS_MAX_AMONG_K{i,j}(:,yy)', '-o','LineWidth', 1, 'Color', colors1(yyy,:))
-            hold on
-        end
-        % lgd = legend({'0.2x Baseline', '1x Baseline', '2x Baseline', '4x Baseline', '6x Baseline', '8x Baseline', '10x Baseline', '12x Baseline', '14x Baseline'}, ...
-        %     'FontSize', 12, 'location', 'eastoutside');
-        lgd = legend({'1x Baseline', '8x Baseline', '14x Baseline'}, ...
-            'FontSize', 12, 'location', 'eastoutside');
-        title(lgd, 'Yield Loss Rate');
-        xlabel("Marginal Failure Rate", 'FontSize',15)
-
-        filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/OOPTCOSTSAVINGS_FIXED_P_CASE', num2str(i), num2str(j), '.pdf');
-        hold off
-        saveas(gcf,filename)  % as MATLAB figure
-        close(gcf)
-
-    end
-end
 
 
 
-%% The story is set now, we plot 3 plots (under a selected combo for C3DP)
-%%      - Plot 1: for each p, draw the the following curves: let yield loss rate increases, for each yield loss rate, get the max. cost savings among K
-%%      - Plot 2: for each yield loss rate, draw the the following curve: let p increases, for each p, get the max. cost savings among K  
-%% From these two pictures, we understand:
-%%      - the general rule of thumb is: cost-savings first increase then decrease with both paramters
-%%      - we expect "high-high" to be bad, and other cases to be ok
-%% So we present plot 3:
-%%      - 5 curves: high-high, high-low, low-high, mid-mid
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% VARYING p AND yieldloss (INDEPENDENT DISRUPTIONS): PLOT COST-SAVINGS VS. K
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Fix all hyperparameters at default values 
+%  - Notably, set c_cap = speed_per_machine_month(i) / cost_of_3dp_per_machine_month(j)
+
+%% Generate three plots to analyze cost savings trends:
+%  - **Plot 1:** For each disruption probability (p), vary the yield loss rate and record the maximum cost savings across K.
+%  - **Plot 2:** For each yield loss rate, vary p and record the maximum cost savings across K.
+%  - **Plot 3:** Compare cost savings across five key (p, yield_loss_rate) combinations:
+%       - High p, High yield loss rate (High-High)
+%       - High p, Low yield loss rate (High-Low)
+%       - Low p, High yield loss rate (Low-High)
+%       - Low p, Low yield loss rate (Low-Low)
+%       - Moderate p, Moderate yield loss rate (Mid-Mid)
+
+%% Insights from the first two plots:
+%  - Cost savings generally follow a non-monotonic trend, first increasing and then decreasing with both parameters.
+%  - The "High-High" scenario is expected to be the least favorable, while other cases perform reasonably well.
+
 
 p_subset = [1,7,11];
 yield_loss_rate_subset = [1,6,9];
@@ -2254,14 +1886,12 @@ for ppp = 1 : length(p_subset)
     plot(yield_loss_rate_set, COST_SAVINGS_VARYING_DISRUPTIONS_MAX_AMONG_K{i,j}(pp,:), '-o','LineWidth', 1, 'Color', colors2(ppp,:))
     hold on
 end
-% lgd = legend({'0.2x Baseline', '1x Baseline', '2x Baseline', '3x Baseline', '4x Baseline', '5x Baseline', '6x Baseline', '7x Baseline', '8x Baseline', '9x Baseline', '10x Baseline'}, ...
-%     'FontSize', 12, 'location', 'eastoutside');
 lgd = legend({'1x Baseline', '5x Baseline', '10x Baseline'}, ...
     'FontSize', 12, 'location', 'eastoutside');
 title(lgd, 'Marginal Disruption Rate');
 xlabel("Yield Loss Rate", 'FontSize',15)
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/AAACOSTSAVINGS_FIXED_YIELDLOSS_CASE', num2str(i), num2str(j), '.pdf');
+filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/COSTSAVINGS_FIXED_YIELDLOSS_CASE', num2str(i), num2str(j), '.pdf');
 hold off
 saveas(gcf,filename)  % as MATLAB figure
 close(gcf)
@@ -2272,14 +1902,12 @@ for yyy = 1 : length(yield_loss_rate_subset)
     plot(p_set, COST_SAVINGS_VARYING_DISRUPTIONS_MAX_AMONG_K{i,j}(:,yy)', '-o','LineWidth', 1, 'Color', colors1(yyy,:))
     hold on
 end
-% lgd = legend({'0.2x Baseline', '1x Baseline', '2x Baseline', '4x Baseline', '6x Baseline', '8x Baseline', '10x Baseline', '12x Baseline', '14x Baseline'}, ...
-%     'FontSize', 12, 'location', 'eastoutside');
 lgd = legend({'1x Baseline', '8x Baseline', '14x Baseline'}, ...
     'FontSize', 12, 'location', 'eastoutside');
 title(lgd, 'Yield Loss Rate');
 xlabel("Marginal Failure Rate", 'FontSize',15)
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/AAACOSTSAVINGS_FIXED_P_CASE', num2str(i), num2str(j), '.pdf');
+filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/COSTSAVINGS_FIXED_P_CASE', num2str(i), num2str(j), '.pdf');
 hold off
 saveas(gcf,filename)  % as MATLAB figure
 close(gcf)
@@ -2287,7 +1915,6 @@ close(gcf)
 
 %% Plot 3
 p_yield_combo = [11,9; 11,1; 7,6; 1,9; 1,1];
-
 
 for combo = 1 : length(p_yield_combo)
 
@@ -2300,11 +1927,10 @@ for combo = 1 : length(p_yield_combo)
 end
 
 xlim([0,30])
-% lgd = legend({'High-High', 'High-Mid', 'High-Low', 'Mid-High', 'Mid-Mid', 'Mid-Low', 'Low-High', 'Low-Mid', 'Low-Low'}, 'FontSize', 12, 'Location', 'eastoutside');
-lgd = legend({'High-High', 'High-Low', 'Mid-Mid', 'Low-High', 'Low-Low'}, 'FontSize', 12, 'location', 'southeast'); 
+gd = legend({'High-High', 'High-Low', 'Mid-Mid', 'Low-High', 'Low-Low'}, 'FontSize', 12, 'location', 'southeast'); 
 title(lgd, '(Freq, Yield Loss)');
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/AAAHIGH_MID_LOW_C3DP_CASE', num2str(i), num2str(j), '.pdf');
+filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(CostSavings)/HIGH_MID_LOW_C3DP_CASE', num2str(i), num2str(j), '.pdf');
 
 ax = gca;
 ax.XTickLabel = strcat(ax.XTickLabel, '%');
@@ -2348,34 +1974,50 @@ writetable(T3, filename, 'Sheet', 'Plot 3');
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% BASED-LINE CASE: PLOT DEMAND SHORTFALLS
+% VARYING p AND yieldloss (INDEPENDENT DISRUPTIONS): PLOT DEMAND SHORTFALLS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% SINGLE system: No 3DP
-%%      - Get the set of products not backedup A0
-%%      - Sample pairs of demand and disruptions
-%%      - For each sample (D, s), calculate [D_j - q_j*s_j]^+ and sum over j in A0
-%%      - Save the disrbtuionn as a vector
+%% SINGLE System: No 3DP
+%  - Identify the set of products without backup (A0).
+%  - Sample pairs of demand and disruptions.
+%  - For each sample (D, s), compute the unmet demand [D_j - q_j * s_j]^+ and sum over j in A0.
+%  - Store the resulting distribution as a vector.
 
-%% Becareful!!! In this case, even the SINGLE system is changing with p and yield loss
+%% Important Note:
+%  - Even in the SINGLE system, the results vary with p (disruption probability) and yield loss rate.
 
-%% DUO system: After 3DP
-%%      - For each capacity K on a grid 
-%%      - Get the set of products backedup-by 3DP A
-%%      - Sample pairs of demand and disruptions
-%%      - For each sample (D, s), calculate optimal 3DP decision q3DP(D,s) and [D_j - q_j*s_j - q_j^3DP(D,s)]^+ and sum over j in A
-%%      - Save the disribution as a vector
+%% DUO System: With 3DP Backup
+%  - For each capacity K on a predefined grid:
+%      - Identify the set of products backed up by 3DP (A).
+%      - Sample pairs of demand and disruptions.
+%      - For each sample (D, s), determine the optimal 3DP decision q3DP(D, s) and compute the unmet demand:
+%        [D_j - q_j * s_j - q_j^3DP(D, s)]^+, summing over j in A.
+%      - Store the resulting distribution as a vector.
 
-%% Two important notes:
-%%      - For the same K, the deamnd shortfall is the same for all c_cap (q_SP is the same)
-%%      - But different c_cap has different opitmla K hence different demand shortfall 
+%% Key Considerations:
+%  - For the same K, the demand shortfall remains identical across all c_cap values since q_SP is the same.
+%  - Different c_cap values lead to different optimal K, resulting in varying demand shortfalls.
 
-%% In what follows, we first fix a c_cap case ("11"), and then compute the demand shortall distribution for each of p and yield_loss case:
-%%      - for each pair of p and yield_loss (under the fixed c_cap), we find the optimal K (max. cost savings)
-%%      - retrieve the x and q_SP at the opt K, and comupute demand shortfall
-%% (TRUST the cost and q_SP computed by SGD)
-
+%% Approach:
+%  - First, fix a specific c_cap case ("11").
+%  - Compute the demand shortfall distribution for each (p, yield_loss_rate) combination:
+%      - For each (p, yield_loss_rate) pair, identify the optimal K that maximizes cost savings.
+%      - Retrieve the corresponding x and q_SP at the optimal K and compute the demand shortfall.
 
 
 i = 1; j = 1;
@@ -2595,132 +2237,11 @@ for pp = 1 : length(p_set)
     end
 end
 
+%% Initial Verification Box Plots
+%  - The plots generated below are for preliminary validation.
+%  - The final figures presented in our paper are produced using Python, utilizing the data saved here.
 
-
-
-       
-%% First get feeling of what the histogram looks like 
-%% Historgarm of demand shortfall with no 3DP
-for pp = 1 : length(p_set)
-    for yy = 1 : length(yield_loss_rate_set)
-        figure;
-        histogram(Relative_Demand_shortfall_no3DP_varying_disruptions{pp,yy},'Normalization', 'probability')
-        xlabel('Shortfall (% of Max. Demand)', 'FontSize', 12);
-        ylabel('Probability', 'FontSize', 12);
-        xt = xticks;
-        xticklabels(strcat(string(xt), '%'));
-
-        saveas(gcf, strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/histogram_no3dp_p_', num2str(pp), '_yield_loss_', num2str(yy), '.pdf'));
-        close(gcf)
-
-    end
-end
-
-%% Historgarm of demand shortfall with 3DP
-for pp = 1 : length(p_set)
-    for yy = 1 : length(yield_loss_rate_set)
-        figure;
-        histogram(Relative_Demand_shotfall_varying_disruptions{pp,yy,i,j},   'Normalization', 'probability')
-        xlabel('Shortfall (% of Max. Demand)', 'FontSize', 12);
-        ylabel('Probability', 'FontSize', 12);
-        xt = xticks;
-        xticklabels(strcat(string(xt), '%'));
-
-        saveas(gcf, strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/histogram_3dp_C3DPcase_', num2str(i), num2str(j), ...
-            '_p_', num2str(pp), '_yieldloss_', num2str(yy), '.pdf'));
-        close(gcf)
-
-    end
-end
-
-
-%% Box plots 
 %% For each fixed p, we plot several sets of boxes, each corresponds to a yield loss, and contain two boxes: with and without 3DP
-%% For each fixed yield loss, we plot several sets of boxes, each corresponds ot a p, and contain two boxes: with and without 3DP
-
-Mean_Relative_Demand_shotfall_varying_disruptions = {};
-Mean_Relative_Demand_shortfall_no3DP_varying_disruptions = [];
-
-tick_labels = {'0.2x 3DP', '0.2x No3DP', '1x 3DP', '1x No3DP', '2x 3DP', '2x No3DP', '4x 3DP', '4x No3DP',...
-     '6x 3DP', '6x No3DP',  '8x 3DP', '8x No3DP',  '10x 3DP', '10x No3DP',  '12x 3DP', '12x No3DP',  '14x 3DP', '14x No3DP'};
-
-for pp = 1 : length(p_set)
-
-    for yy = 1 : length(yield_loss_rate_set)
-        
-        boxplot(Relative_Demand_shotfall_varying_disruptions{pp,yy,i,j}, 'Positions', 2*yy-1, 'Widths', 0.5, 'Symbol', '');
-        hold on
-        boxplot(Relative_Demand_shortfall_no3DP_varying_disruptions{pp,yy}, 'Positions', 2*yy, 'Widths', 0.5, 'Symbol', '', 'Colors', 'r', 'MedianStyle', 'target');
-        hold on
-        
-        Mean_Relative_Demand_shotfall_varying_disruptions{i,j}(pp,yy) = mean(Relative_Demand_shotfall_varying_disruptions{pp,yy,i,j});
-        Mean_Relative_Demand_shortfall_no3DP_varying_disruptions(pp,yy) = mean(Relative_Demand_shortfall_no3DP_varying_disruptions{pp,yy});
-        
-    end
-    
-    plot( 2*[1:length(yield_loss_rate_set)]-1, Mean_Relative_Demand_shotfall_varying_disruptions{i,j}(pp,:), '-o', 'LineWidth', 1.5)
-    hold on
-    plot( 2*[1:length(yield_loss_rate_set)], Mean_Relative_Demand_shortfall_no3DP_varying_disruptions(pp,:), '-o', 'LineWidth', 1.5)
-
-    xticks(1:length(tick_labels)); 
-    xticklabels(tick_labels);
-
-    xlabel('Yield Loss Ratio (Multiple of Baseline)', 'FontSize', 12);
-    ylabel('Shortfall (% of Max Demand)', 'FontSize', 12);
-    ytickformat('percentage');
-
-    ylim([-0.333,6])
-    % grid on;
-
-    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), '_varying_yieldloss_fixed_p_case', num2str(pp), '.pdf');
-    saveas(gcf, filename);
-    close(gcf)
-
-end
-
-
-tick_labels = {'0.2x 3DP', '0.2x No3DP', '1x 3DP', '1x No3DP', '2x 3DP', '2x No3DP', '3x 3DP', '3x No3DP', '4x 3DP', '4x No3DP', ...
-     '5x 3DP', '5x No3DP', '6x 3DP', '6x No3DP', '7x 3DP', '7x No3DP', '8x 3DP', '8x No3DP', '9x 3DP', '9x No3DP', '10x 3DP', '10x No3DP'};
-
-for yy = 1 : length(yield_loss_rate_set)
-
-    for pp = 1 : length(p_set)
-
-        boxplot(Relative_Demand_shotfall_varying_disruptions{pp,yy,i,j}, 'Positions', 2*pp-1, 'Widths', 0.5, 'Symbol', '');
-        hold on
-        boxplot(Relative_Demand_shortfall_no3DP_varying_disruptions{pp,yy}, 'Positions', 2*pp, 'Widths', 0.5, 'Symbol', '', 'Colors', 'r', 'MedianStyle', 'target');
-        hold on
-        
-    end
-    
-    plot( 2*[1:length(p_set)]-1, Mean_Relative_Demand_shotfall_varying_disruptions{i,j}(:,yy)', '-o', 'LineWidth', 1.5)
-    hold on
-    plot( 2*[1:length(p_set)], Mean_Relative_Demand_shortfall_no3DP_varying_disruptions(:,yy)', '-o', 'LineWidth', 1.5)
-
-    xticks(1:length(tick_labels)); 
-    xticklabels(tick_labels);
-
-    xlabel('Marginal Failure Rate (Multiple of Baseline)', 'FontSize', 12);
-    ylabel('Shortfall (% of Max Demand)', 'FontSize', 12);
-    ytickformat('percentage');
-
-    ylim([-0.333,6])
-    % grid on;
-
-    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), '_varying_p_fixed_yieldloss_case', num2str(yy), '.pdf');
-    saveas(gcf, filename);
-    close(gcf)
-
-end
-
-
-
-
-
-
-
-%% The box plots we have so far are too raw and dense, let's select some subsets to plot
-%% Fix p varying yield loss
 p_subset1 = [2,6,11];
 yield_loss_rate_subset1 = [1,2,4,6,8];
 
@@ -2762,7 +2283,7 @@ for ppp = 1 : length(p_subset1)
     ylim([-0.333,5])
     xlim([-0.5, 4*length(yield_loss_rate_subset1)]-0.5)
 
-    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/AAAAboxplots_C3DPcase_', num2str(i), num2str(j), 'fixed_p_varying_yieldloss_case', num2str(pp), '.pdf');
+    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), 'fixed_p_varying_yieldloss_case', num2str(pp), '.pdf');
     saveas(gcf, filename);
     close(gcf)
 
@@ -2811,11 +2332,7 @@ save('Experiment_Data/Relative_Cost_Savings_Shortfalls/varying_disruption_distr_
 
 
 
-
-
-
-
-%% Fix yield loss varying p
+%% For each fixed yield loss, we plot several sets of boxes, each corresponds ot a p, and contain two boxes: with and without 3DP
 
 yield_loss_rate_subset2 = [2,5,8];
 p_subset2 = [1,2,4,6,8];
@@ -2856,7 +2373,7 @@ for yyy = 1 : length(yield_loss_rate_subset2)
     xlim([-0.5, 4*length(p_subset2)]-0.5)
     % grid on;
 
-    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/AAAboxplots_C3DPcase_', num2str(i), num2str(j), '_fixed_yieldloss_varying_p_case', num2str(yy), '.pdf');
+    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), '_fixed_yieldloss_varying_p_case', num2str(yy), '.pdf');
     saveas(gcf, filename);
     close(gcf)
 
@@ -2908,69 +2425,6 @@ save('Experiment_Data/Relative_Cost_Savings_Shortfalls/varying_disruption_distr_
 
 
 
-
-
-
-
-% %% Box plots can be messy, the main reason is that now the no 3DP baseline also changes, make it a little harder to present
-% %% We just present all the cases in mean, in this case, we can compare the improvement to the no 3DP case
-% 
-% Improved_Mean_Relative_Demand_shortfall_varying_disruptions = ...
-%     Mean_Relative_Demand_shortfall_no3DP_varying_disruptions - Mean_Relative_Demand_shotfall_varying_disruptions{i,j} ;
-% 
-% curves_name1 = {'0.2x', '1x', '2x', '3x', '4x', '5x', '6x', '7x', '8x', '9x', '10x'};
-% p_subset = [2:2:11];
-% % p_subset = [1,7,11];
-% 
-% for ppp = 1 : length(p_subset)
-%     pp = p_subset(ppp);
-%     plot(yield_loss_rate_set, Improved_Mean_Relative_Demand_shortfall_varying_disruptions(pp,:), '-o', 'LineWidth', 2)
-%     hold on
-% end
-% 
-% x_fill = [0, 0, 0.7, 0.7]; % X coordinates of the corners
-% y_fill = [0, -2, -2, 0]; % Y coordinates of the corners
-% fill(x_fill, y_fill, [0.5 0.5 0.5], 'FaceAlpha', 0.333, 'EdgeColor', 'none'); % Transparent grey fill
-% 
-% lgd = legend(curves_name1(p_subset), 'Location', 'southwest', 'FontSize', 12);
-% title(lgd, 'Marginal Disruption Rate');
-% xlabel("Yield Loss Ratio", 'FontSize',15)
-% 
-% ylabel('Improved Mean Shortfall (% of Max Demand)', 'FontSize', 12);
-% ytickformat('percentage');
-% 
-% filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/mean_shortall_C3DPcase_', num2str(i), num2str(j), '_varying_p_fixed_yieldloss_mean_shortall.pdf');
-% saveas(gcf, filename);
-% close(gcf)
-% 
-% 
-% curves_name2 = {'0.2x', '1x', '2x', '4x', '6x', '8x', '10x', '12x', '14x'};
-% yield_loss_rate_subset = [1:2:9];
-% % yield_loss_rate_subset = [1,6,9];
-% 
-% for yyy = 1 : length(yield_loss_rate_subset)
-%     yy = yield_loss_rate_subset(yyy);
-%     plot(p_set, Improved_Mean_Relative_Demand_shortfall_varying_disruptions(:,yy)', '-o', 'LineWidth', 2)
-%     hold on
-% end
-% 
-% x_fill = [0, 0, 0.5, 0.5]; % X coordinates of the corners
-% y_fill = [0, -2, -2, 0]; % Y coordinates of the corners
-% fill(x_fill, y_fill, [0.5 0.5 0.5], 'FaceAlpha', 0.333, 'EdgeColor', 'none'); % Transparent grey fill
-% 
-% lgd = legend(curves_name2(yield_loss_rate_subset), 'Location', 'southwest', 'FontSize', 12);
-% title(lgd, 'Yield Loss Ratio');
-% xlabel("Marginal Disruption Rate", 'FontSize',15)
-% 
-% ylabel('Improved Mean Shortfall (% of Max Demand)', 'FontSize', 12);
-% ytickformat('percentage');
-% 
-% filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls/Varying_p_yield_loss(Shortfalls)/mean_shortall_C3DPcase_', num2str(i), num2str(j), '_varying_yieldloss_fixed_p.pdf');
-% saveas(gcf, filename);
-% close(gcf)
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
