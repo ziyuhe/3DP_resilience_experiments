@@ -86,6 +86,4 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 ### **🔧 Requirements**
 - MATLAB (Tested on R2023a+)
 - Gurobi (For MIP-based optimization)
-- Decision Tree & Machine Learning Toolbox (For decision tree analysis)
-
-### **📂 Repository Structure**
+- R packages: `rpart`, `rpart.plot`, and `caret` (For decision tree analysis)
