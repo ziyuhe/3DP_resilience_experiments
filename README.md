@@ -84,7 +84,7 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 
 
 ## 📂 Utilities Overview  
-The `Utilities/` folder contains key scripts for **sampling, optimization, and subgradient evaluations** in our experiments:
+The [`Utilities`](Utilities/)   folder contains key scripts for **sampling, optimization, and subgradient evaluations** in our experiments:
 - 🎲 **Sampling** for Sample Average Approximations  - [`Utilities/Data_prep_for_MIP.m`](Utilities/Data_prep_for_MIP.m)  
 - 🧮 Optimize the key Decisions via **Benders Decomposition** - [`Utilities/U3DP_MIP_Benders.m`](Utilities/U3DP_MIP_Benders.m)  
 - 🔍 Optimize the key Decisions **Supermodular Heuristics** - [`Utilities/BoE_Approx_Max_Submod_SAA.m`](Utilities/BoE_Approx_Max_Submod_SAA.m)  
