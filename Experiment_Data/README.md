@@ -38,7 +38,7 @@ This directory contains the results of **3DP resilience strategy experiments**, 
 ## **5️⃣ Key Drivers of 3DP Resilience Benefits**  
 We analyze **how key parameters affect 3DP cost savings & demand shortfall reduction**:
 
-- 📂 [`Impact of 3DP Fixed Costs: Relative_Cost_Savings_Shortfalls_Varying_3DPFixedCost`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_3DPFixedCost/)  
-- 📂 [`Impact of 3DP Variable Costs: Relative_Cost_Savings_Shortfalls_Varying_c3DP`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_c3DP/)  
-- 📂 [`Impact of Disruption Rates & Yield Losses: Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/)  
-- 📂 [`**(Impact of Disruption Correlations)** Relative_Cost_Savings_Shortfalls_Corr_Interpolate`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/)  
+- 📂 [`(Impact of 3DP Fixed Costs) Relative_Cost_Savings_Shortfalls_Varying_3DPFixedCost`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_3DPFixedCost/)  
+- 📂 [`(Impact of 3DP Variable Costs) Relative_Cost_Savings_Shortfalls_Varying_c3DP`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_c3DP/)  
+- 📂 [`(Impact of Disruption Rates & Yield Losses) Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/)  
+- 📂 [`(Impact of Disruption Correlations) Relative_Cost_Savings_Shortfalls_Corr_Interpolate`](Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/)  
