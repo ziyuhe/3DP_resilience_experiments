@@ -85,16 +85,11 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 
 ## 📂 Utilities Overview  
 The `Utilities/` folder contains key scripts for **sampling, optimization, and subgradient evaluations** in our experiments:
-- 🎲 **Sampling for SAA** – Draws data for **Sample Average Approximations**  
-  - [`Utilities/Data_prep_for_MIP.m`](Utilities/Data_prep_for_MIP.m)  
-- 🧮 **Benders Decomposition Optimization** – Optimizes key decisions using **Benders decomposition**  
-  - [`Utilities/U3DP_MIP_Benders.m`](Utilities/U3DP_MIP_Benders.m)  
-- 🔍 **Supermodular Heuristics Optimization** – Uses **supermodular approximations** for decision-making  
-  - [`Utilities/BoE_Approx_Max_Submod_SAA.m`](Utilities/BoE_Approx_Max_Submod_SAA.m)  
-- ⚙️ **SGD Optimization with Fixed Supplier Selection** – Optimizes **primary orders and 3DP capacity** while keeping supplier selection fixed  
-  - [`Utilities/U3DP_SGD_fixed_suppselect_optimize_K.m`](Utilities/U3DP_SGD_fixed_suppselect_optimize_K.m)  
-- 📉 **Subgradient Evaluations** – Computes **subgradients of the second-stage recourse function**  
-  - [`Utilities/V3DP_b2b_dual_fixed_suppselect.m`](Utilities/V3DP_b2b_dual_fixed_suppselect.m)  
+- 🎲 **Sampling** for Sample Average Approximations  - [`Utilities/Data_prep_for_MIP.m`](Utilities/Data_prep_for_MIP.m)  
+- 🧮 Optimize the key Decisions via **Benders Decomposition** - [`Utilities/U3DP_MIP_Benders.m`](Utilities/U3DP_MIP_Benders.m)  
+- 🔍 Optimize the key Decisions **Supermodular Heuristics** - [`Utilities/BoE_Approx_Max_Submod_SAA.m`](Utilities/BoE_Approx_Max_Submod_SAA.m)  
+- ⚙️ Optimization with Fixed Supplier Selection via **SGD** – [`Utilities/U3DP_SGD_fixed_suppselect_optimize_K.m`](Utilities/U3DP_SGD_fixed_suppselect_optimize_K.m)  
+- 📉 **Subgradient Evaluations** of the Second-Stage Recourse - [`Utilities/V3DP_b2b_dual_fixed_suppselect.m`](Utilities/V3DP_b2b_dual_fixed_suppselect.m)  
 
 ---
 
