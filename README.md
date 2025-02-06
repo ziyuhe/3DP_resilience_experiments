@@ -83,6 +83,22 @@ We systematically investigate how key parameters impact **3DP’s performance** 
 ---
 
 
+## 📂 Utilities Overview  
+The `Utilities/` folder contains key scripts for **sampling, optimization, and subgradient evaluations** in our experiments:
+- 🎲 **Sampling for SAA** – Draws data for **Sample Average Approximations**  
+  - [`Utilities/Data_prep_for_MIP.m`](Utilities/Data_prep_for_MIP.m)  
+- 🧮 **Benders Decomposition Optimization** – Optimizes key decisions using **Benders decomposition**  
+  - [`Utilities/U3DP_MIP_Benders.m`](Utilities/U3DP_MIP_Benders.m)  
+- 🔍 **Supermodular Heuristics Optimization** – Uses **supermodular approximations** for decision-making  
+  - [`Utilities/BoE_Approx_Max_Submod_SAA.m`](Utilities/BoE_Approx_Max_Submod_SAA.m)  
+- ⚙️ **SGD Optimization with Fixed Supplier Selection** – Optimizes **primary orders and 3DP capacity** while keeping supplier selection fixed  
+  - [`Utilities/U3DP_SGD_fixed_suppselect_optimize_K.m`](Utilities/U3DP_SGD_fixed_suppselect_optimize_K.m)  
+- 📉 **Subgradient Evaluations** – Computes **subgradients of the second-stage recourse function**  
+  - [`Utilities/V3DP_b2b_dual_fixed_suppselect.m`](Utilities/V3DP_b2b_dual_fixed_suppselect.m)  
+
+---
+
+
 ## ⚠️ Data Pre-Processing Disclaimer
 - 📂 **Data Pre-Processing Steps:** Listed in [`Problem_Data/Data_Preprocessing/`](Problem_Data/Data_Preprocessing/), where we provide only the **processing scripts** but **not** the actual raw data.  
 - 🔍 **Raw Data Source:** The raw data consists of **Mattel's Bill-of-Lading (BOL) records**, which were retrieved from the third-party service **[Import Yeti](https://www.importyeti.com)** and are **not included** in this repository due to **licensing restrictions**.  
