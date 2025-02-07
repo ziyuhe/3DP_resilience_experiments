@@ -1,6 +1,6 @@
 ## 📂 Data Preprocessing for Synthesized Products
 
-The [`Data_Preprocessing/`](Problem_Data/Data_Preprocessing/) directory outlines the steps for creating **synthesized products** based on **Bill-of-Lading (BOL) data**.
+The [`Data_Preprocessing`](Problem_Data/Data_Preprocessing/) directory outlines the steps for creating **synthesized products** based on **Bill-of-Lading (BOL) data**.
 
 ⚠ **Note:** The raw data was retrieved from a **third-party service** and is **not included** in this repository due to licensing restrictions. To use the scripts in [`Data_Preprocessing/`](Problem_Data/Data_Preprocessing/), you must **provide your own dataset** with a similar structure.
 
