@@ -4,9 +4,9 @@
 # install.packages("caret")
 
 # Load required libraries
-# library(rpart)
-# library(rpart.plot)
-# library(caret)
+library(rpart)
+library(rpart.plot)
+library(caret)
 
 
 # Decision Tree Analysis: Drivers of 3DP Backup Adoption
@@ -247,7 +247,7 @@ final_tree$frame$var <- gsub("\\.", "-", final_tree$frame$var)
 final_tree$frame$var <- gsub("^X", "", final_tree$frame$var)
 
 # Save the decision tree plot to a PNG file
-pdf("final_decision_tree_full.pdf", width = 12, height = 8)  # Set PDF dimensions
+pdf("final_decision_tree_full.pdf", width = 24, height = 8)  # Set PDF dimensions
 rpart.plot(final_tree, type = 5, cex = 1.5)
 dev.off()
 #########################################################################################################
@@ -265,7 +265,7 @@ pruned_tree <- prune(final_tree, cp=0.006)
 # Visualize the pruned tree
 rpart.plot(pruned_tree)
 
-pdf("final_decision_tree_pruned.pdf", width = 12, height = 8)  # Set PDF dimensions
+pdf("final_decision_tree_pruned.pdf", width = 15, height = 8)  # Set PDF dimensions
 rpart.plot(pruned_tree, type = 5, cex = 1.5)
 dev.off()
 #########################################################################################################
