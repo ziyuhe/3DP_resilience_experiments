@@ -265,7 +265,7 @@ pruned_tree <- prune(final_tree, cp=0.006)
 # Visualize the pruned tree
 rpart.plot(pruned_tree)
 
-pdf("final_decision_tree_pruned.pdf", width = 15, height = 8)  # Set PDF dimensions
+pdf("final_decision_tree_pruned.pdf", width = 15, height = 7)  # Set PDF dimensions
 rpart.plot(pruned_tree, type = 5, cex = 1.5)
 dev.off()
 #########################################################################################################
