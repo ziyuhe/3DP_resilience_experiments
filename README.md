@@ -98,7 +98,7 @@ The [`Utilities`](Utilities/)   folder contains key scripts for **sampling, opti
 - 📂 **Data Pre-Processing Steps:** Listed in [`Problem_Data/Data_Preprocessing/`](Problem_Data/Data_Preprocessing/), where we provide only the **processing scripts** but **not** the actual raw data.  
 - 🔍 **Raw Data Source:** The raw data consists of **Mattel's Bill-of-Lading (BOL) records**, which were retrieved from the third-party service **[Import Yeti](https://www.importyeti.com)** and are **not included** in this repository due to **licensing restrictions**.  
 - ⚠️ **User Requirement:** To use these scripts, you must **provide your own dataset** with a similar structure.  
-- 📊 **Processed Output:** The final output of these pre-processing steps is a **list of synthesized products** designed for **synthetic suppliers** of Mattel, along with their **monthly aggregated demand data**. These results are available in [`Problem_Data/All/`](Problem_Data/All/), where:  
+- 📊 **Processed Output:** The final output of these pre-processing steps is a **list of synthesized products** designed for **synthetic suppliers** of Mattel, along with their **monthly aggregated demand data**. These results are available in [`Problem_Data/All/`](Problem_Data/All/) and [`Problem_Data/All_Suppliers_Monthly_Demand`](Problem_Data/All_Suppliers_Monthly_Demand), where:  
   - 🔒 **Supplier information is properly censored** to maintain confidentiality.  
   - 📉 **Only aggregated monthly quantities are shared**, ensuring that the original Mattel BOL data **cannot be reverse-engineered**.  
 
