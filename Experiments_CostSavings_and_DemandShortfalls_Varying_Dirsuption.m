@@ -387,9 +387,9 @@ for pp = 1 : length(p_set)
 end
 
 
-save("Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_DisruptionDistr_Ind_Comono_all_in_one.mat")
+save("Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_DisruptionDistr_Ind_Comono_all_in_one.mat")
 
-DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Benchmark.mat");
+DDD = load("Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Benchmark.mat");
 
 COST_TMONLY_BENCMARK = DDD.COST_TMONLY_BENCMARK;
 OUTPUT_MEDIUM_BOE_BENCHMARK = DDD.OUTPUT_MEDIUM_BOE_BENCHMARK;
@@ -467,7 +467,7 @@ lgd = legend({'1x Baseline', '5x Baseline', '10x Baseline'}, ...
 title(lgd, 'Marginal Disruption Rate');
 xlabel("Yield Loss Rate", 'FontSize',15)
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(CostSavings)/COSTSAVINGS_FIXED_YIELDLOSS_CASE', num2str(i), num2str(j), '.pdf');
+filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(CostSavings)/COSTSAVINGS_FIXED_YIELDLOSS_CASE', num2str(i), num2str(j), '.pdf');
 hold off
 saveas(gcf,filename)  % as MATLAB figure
 close(gcf)
@@ -483,7 +483,7 @@ lgd = legend({'1x Baseline', '8x Baseline', '14x Baseline'}, ...
 title(lgd, 'Yield Loss Rate');
 xlabel("Marginal Failure Rate", 'FontSize',15)
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(CostSavings)/COSTSAVINGS_FIXED_P_CASE', num2str(i), num2str(j), '.pdf');
+filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(CostSavings)/COSTSAVINGS_FIXED_P_CASE', num2str(i), num2str(j), '.pdf');
 hold off
 saveas(gcf,filename)  % as MATLAB figure
 close(gcf)
@@ -506,7 +506,7 @@ xlim([0,30])
 gd = legend({'High-High', 'High-Low', 'Mid-Mid', 'Low-High', 'Low-Low'}, 'FontSize', 12, 'location', 'southeast'); 
 title(lgd, '(Freq, Yield Loss)');
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(CostSavings)/HIGH_MID_LOW_C3DP_CASE', num2str(i), num2str(j), '.pdf');
+filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(CostSavings)/HIGH_MID_LOW_C3DP_CASE', num2str(i), num2str(j), '.pdf');
 
 ax = gca;
 ax.XTickLabel = strcat(ax.XTickLabel, '%');
@@ -531,7 +531,7 @@ for combo = 1 : length(p_yield_combo)
 
 end
 
-filename = 'Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/varying_disruption_distr_ind_for_python_costsavings.xlsx';
+filename = 'Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/varying_disruption_distr_ind_for_python_costsavings.xlsx';
 
 % Save Plot 1
 plot1_labels = ["Yield Loss Rate", "Plot1_Series1", "Plot1_Series2", "Plot1_Series3"];
@@ -859,7 +859,7 @@ for ppp = 1 : length(p_subset1)
     ylim([-0.333,5])
     xlim([-0.5, 4*length(yield_loss_rate_subset1)]-0.5)
 
-    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), 'fixed_p_varying_yieldloss_case', num2str(pp), '.pdf');
+    filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), 'fixed_p_varying_yieldloss_case', num2str(pp), '.pdf');
     saveas(gcf, filename);
     close(gcf)
 
@@ -903,7 +903,7 @@ xlimit1 = [-0.5, 4*length(yield_loss_rate_subset1)]-0.5;
 ylimit1 = [-0.333,5];
 
 % Save data to .mat file
-save('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/varying_disruption_distr_ind_for_python_shortfalls1.mat', 'Box_plot_data11', 'Box_plot_data12', 'mean_plot_data11', 'mean_plot_data12', ...
+save('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/varying_disruption_distr_ind_for_python_shortfalls1.mat', 'Box_plot_data11', 'Box_plot_data12', 'mean_plot_data11', 'mean_plot_data12', ...
      'box_plot_pos11', 'box_plot_pos12', 'x_ticks_labels1', 'x_ticks_pos1', 'vertline_pos1', 'xlimit1', 'ylimit1');
 
 
@@ -949,7 +949,7 @@ for yyy = 1 : length(yield_loss_rate_subset2)
     xlim([-0.5, 4*length(p_subset2)]-0.5)
     % grid on;
 
-    filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), '_fixed_yieldloss_varying_p_case', num2str(yy), '.pdf');
+    filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/Varying_p_yield_loss(Shortfalls)/boxplots_C3DPcase_', num2str(i), num2str(j), '_fixed_yieldloss_varying_p_case', num2str(yy), '.pdf');
     saveas(gcf, filename);
     close(gcf)
 
@@ -992,7 +992,7 @@ vertline_pos2 = 4*[1:length(p_subset2)]-0.5;
 xlimit2 = [-0.5, 4*length(p_subset2)]-0.5;
 ylimit2 = [-0.333,5];
 
-save('Experiment_Data/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/varying_disruption_distr_ind_for_python_shortfalls2.mat', ...
+save('Experiment_Results/Relative_Cost_Savings_Shortfalls_Varying_p_yieldloss/varying_disruption_distr_ind_for_python_shortfalls2.mat', ...
     'Box_plot_data21', 'Box_plot_data22', ...
     'mean_plot_data21', 'mean_plot_data22', ...
     'box_plot_pos21', 'box_plot_pos22', ...

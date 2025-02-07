@@ -97,7 +97,7 @@ grid on
 weight_data = weight_all * 1000; % Convert to grams
 
 % Define the directory path
-output_dir = 'Experiment_Data/Basic_Pictures_Synthetic_Products';
+output_dir = 'Experiment_Results/Basic_Pictures_Synthetic_Products';
 
 % Check if the directory exists, if not, create it
 if ~exist(output_dir, 'dir')

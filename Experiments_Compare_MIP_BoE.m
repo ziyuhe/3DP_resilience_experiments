@@ -624,7 +624,7 @@ end
 
 
 %% Define directory paths
-data_dir = 'Experiment_Data/Compare_MIP_Time_GRB_Benders_BoE';
+data_dir = 'Experiment_Results/Compare_MIP_Time_GRB_Benders_BoE';
 
 % Create directories if they do not exist
 if ~exist(data_dir, 'dir')

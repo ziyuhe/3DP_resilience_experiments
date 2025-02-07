@@ -787,7 +787,7 @@ for num_suppliers_case = 1 : length(NUM_SUPPLIERS_SET)
     end
 end
 
-directory = "Experiment_Data/Switch_Backup_vs_n";
+directory = "Experiment_Results/Switch_Backup_vs_n";
 if ~exist(directory, 'dir')
     mkdir(directory);
 end
@@ -837,7 +837,7 @@ for i = 1:length(speed_per_machine_month)
         grid on;
         
         % Save figure
-        fileName = strcat('Experiment_Data/Switch_Backup_vs_n/Ratio_TMbackup_boxplots', num2str(i), num2str(j), '.pdf');
+        fileName = strcat('Experiment_Results/Switch_Backup_vs_n/Ratio_TMbackup_boxplots', num2str(i), num2str(j), '.pdf');
         saveas(gcf, fileName);
         
         hold off;
@@ -858,7 +858,7 @@ for num_suppliers_case = 1:length(NUM_SUPPLIERS_SET)
     data_table.NumSuppliers = repmat(NUM_SUPPLIERS_SET(num_suppliers_case), height(data_table), 1);
 
     % Save table as a CSV file
-    file_name = strcat('Experiment_Data/Switch_Backup_vs_n/Data_NumSuppliers_TMbackup_', num2str(NUM_SUPPLIERS_SET(num_suppliers_case)), '.csv');
+    file_name = strcat('Experiment_Results/Switch_Backup_vs_n/Data_NumSuppliers_TMbackup_', num2str(NUM_SUPPLIERS_SET(num_suppliers_case)), '.csv');
     writetable(data_table, file_name);
 end
 
@@ -891,7 +891,7 @@ for i = 1:length(speed_per_machine_month)
         grid on;
         
         % Save figure
-        fileName = strcat('Experiment_Data/Switch_Backup_vs_n/Cost_savings_boxplots', num2str(i), num2str(j), '.pdf');
+        fileName = strcat('Experiment_Results/Switch_Backup_vs_n/Cost_savings_boxplots', num2str(i), num2str(j), '.pdf');
         saveas(gcf, fileName);
         
         hold off;
@@ -912,7 +912,7 @@ for num_suppliers_case = 2:length(NUM_SUPPLIERS_SET)
     data_table.NumSuppliers = repmat(NUM_SUPPLIERS_SET(num_suppliers_case), height(data_table), 1);
 
     % Save table as a CSV file
-    file_name = strcat('Experiment_Data/Switch_Backup_vs_n/Data_NumSuppliers_costsavings_', num2str(NUM_SUPPLIERS_SET(num_suppliers_case)), '.csv');
+    file_name = strcat('Experiment_Results/Switch_Backup_vs_n/Data_NumSuppliers_costsavings_', num2str(NUM_SUPPLIERS_SET(num_suppliers_case)), '.csv');
     writetable(data_table, file_name);
 end
 
@@ -1080,7 +1080,7 @@ xticklabels(string(NUM_SUPPLIERS_SET(2:end))); % Display the actual positions as
 % title('Boxplots for Each Row');
 grid on;
 
-fileName = strcat('Experiment_Data/Switch_Backup_vs_n/Demand_shortfall_boxplots', num2str(i), num2str(j), '.pdf'); % Specify the file name
+fileName = strcat('Experiment_Results/Switch_Backup_vs_n/Demand_shortfall_boxplots', num2str(i), num2str(j), '.pdf'); % Specify the file name
 saveas(gcf, fileName); % Save current figure as a PDF
 
 hold off;
@@ -1103,14 +1103,14 @@ for num_suppliers_case = 1 : length(NUM_SUPPLIERS_SET)
     data_table.NumSuppliers = repmat(NUM_SUPPLIERS_SET(num_suppliers_case), height(data_table), 1);
     
     % Save to CSV
-    file_name = strcat('Experiment_Data/Switch_Backup_vs_n/Data_NumSuppliers_demandshortfall_', num2str(NUM_SUPPLIERS_SET(num_suppliers_case)), '.csv');
+    file_name = strcat('Experiment_Results/Switch_Backup_vs_n/Data_NumSuppliers_demandshortfall_', num2str(NUM_SUPPLIERS_SET(num_suppliers_case)), '.csv');
     writetable(data_table, file_name);
 end
 
 
 
 
-save("Experiment_Data/Switch_Backup_vs_n/data_n_less_than_55.mat")
+save("Experiment_Results/Switch_Backup_vs_n/data_n_less_than_55.mat")
 
 
 

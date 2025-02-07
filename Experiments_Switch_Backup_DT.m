@@ -591,7 +591,7 @@ end
 raw_featureNames = {'v', 'h', 'c3DP', 'cTM', 'weight', '3DP profit', 'demand mean', 'disrupt. prob.', 'yield loss'};
 synth_featureNames = {'Abs 3DP profit', 'Relative 3DP profit', 'service level1', 'service level2', 'service level3', 'mean shortfall', 'DB Retainer Rate'};
 
-base_dir = 'Experiment_Data/Decision_Tree/';
+base_dir = 'Experiment_Results/Decision_Tree/';
 
 for i = 1:length(speed_per_machine_month)
     for j = 1:length(cost_of_3dp_per_machine_month)
@@ -638,7 +638,7 @@ end
 
 
 
-save("Experiment_Data/Decision_Tree/data.mat")
+save("Experiment_Results/Decision_Tree/data.mat")
 
 
 

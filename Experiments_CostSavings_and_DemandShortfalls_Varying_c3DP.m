@@ -323,10 +323,10 @@ for ll = 1:length(c_3DP_rate_set)
 
 end
 
-save("Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP.mat")
+save("Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP.mat")
 
 
-DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/Benchmark.mat");
+DDD = load("Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/Benchmark.mat");
 
 COST_TMONLY_BENCMARK = DDD.COST_TMONLY_BENCMARK;
 OUTPUT_MEDIUM_BOE_BENCHMARK = DDD.OUTPUT_MEDIUM_BOE_BENCHMARK;
@@ -399,7 +399,7 @@ for i = 1 : length(speed_per_machine_month)
         lgd = legend({'1x Baseline', '0.5x Baseline', '2x Baseline', '3x Baseline'}, 'FontSize', 12, 'location', 'northeast');
         title(lgd, '3DP variable cost $c^{\mathsf{3DP}}$', 'interpreter', 'latex');
         
-        filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP(CostSavings)/Varying_c3DP_Speed', num2str(i), '_PrinterCost', num2str(j) ,'.pdf');
+        filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP(CostSavings)/Varying_c3DP_Speed', num2str(i), '_PrinterCost', num2str(j) ,'.pdf');
         
         ax = gca;
         ax.XTickLabel = strcat(ax.XTickLabel, '%');
@@ -441,7 +441,7 @@ xlim([0,30])
 lgd = legend({'1x Baseline', '0.5x Baseline', '2x Baseline', '3x Baseline'}, 'FontSize', 12, 'location', 'northeast');
 title(lgd, '3DP variable cost $c^{\mathsf{3DP}}$', 'interpreter', 'latex');
 
-filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP(CostSavings)/Varying_c3DP_Speed', num2str(i), '_PrinterCost', num2str(j) ,'(PRETTIER).pdf');
+filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP(CostSavings)/Varying_c3DP_Speed', num2str(i), '_PrinterCost', num2str(j) ,'(PRETTIER).pdf');
 
 ax = gca;
 ax.XTickLabel = strcat(ax.XTickLabel, '%');
@@ -483,7 +483,7 @@ headers = ['Capacity_3DP_Percentage', 'Baseline', ...
 headers=headers([1,3,2,4,5]);
 
 % Write to CSV file
-csv_filename = 'Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/varying_c3DP_for_python_costsavings.csv';
+csv_filename = 'Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/varying_c3DP_for_python_costsavings.csv';
 fid = fopen(csv_filename, 'w');
 fprintf(fid, '%s,', headers{1:end-1});  % Write column headers
 fprintf(fid, '%s\n', headers{end});
@@ -514,7 +514,7 @@ fprintf('Data saved to %s\n', csv_filename);
 %% Retrieve demand shortfall results for:
 %  - No 3DP (independent of c_3DP or C3DP)
 %  - Benchmark c_3DP case (all C3DP)
-DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/Benchmark.mat");
+DDD = load("Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/Benchmark.mat");
 Relative_Demand_shortfall_no3DP_Benchmark = DDD.Relative_Demand_shortfall_no3DP_Benchmark;
 Relative_Demand_shortfall_varying_C3DP = DDD.Relative_Demand_shortfall_varying_C3DP;
 
@@ -669,7 +669,7 @@ for i = 1 : length(speed_per_machine_month)
         plot([1:length(c_3DP_rate_set)+2], [Mean_Relative_Demand_shortfall_varying_c3DP{i,j}, mean(Relative_Demand_shortfall_no3DP_Benchmark) ], ...
             '-o', 'LineWidth',2)
     
-        filename = strcat('Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP(Shortfalls)/boxplots_3dp_varying_c3DP_C3DPcase_', num2str(i), '_', num2str(j), '.pdf');
+        filename = strcat('Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/Varying_c3DP(Shortfalls)/boxplots_3dp_varying_c3DP_C3DPcase_', num2str(i), '_', num2str(j), '.pdf');
         saveas(gcf, filename);
         close(gcf)
 
@@ -701,11 +701,11 @@ mean_data = [mean_data; length(c_3DP_rate_set) + 2, mean(no_3dp_data)];
 
 % Save mean data
 mean_table = array2table(mean_data, 'VariableNames', {'Position', 'MeanShortfall'});
-writetable(mean_table, 'Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/varying_c3DP_for_python_shortfalls1.csv');
+writetable(mean_table, 'Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/varying_c3DP_for_python_shortfalls1.csv');
 
 % Save boxplot data
 boxplot_table = array2table(boxplot_data, 'VariableNames', {'Position', 'Shortfall'});
-writetable(boxplot_table, 'Experiment_Data/Relative_Cost_Savings_Shortfalls_c3DP/varying_c3DP_for_python_shortfalls2.csv');
+writetable(boxplot_table, 'Experiment_Results/Relative_Cost_Savings_Shortfalls_c3DP/varying_c3DP_for_python_shortfalls2.csv');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

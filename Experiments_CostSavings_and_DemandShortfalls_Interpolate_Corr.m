@@ -543,9 +543,9 @@ for ii = 1 : length(yield_loss_rate_set)
     end
 
     if ii == 1
-        save("Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_small_yieldloss).mat");
+        save("Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_small_yieldloss).mat");
     else
-        save("Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_large_yieldloss).mat");
+        save("Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_large_yieldloss).mat");
     end
 
 end
@@ -561,17 +561,17 @@ end
 subset_for_plot = [1:2:11];
 
 %% Save to csv data
-DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_small_yieldloss).mat");
+DDD = load("Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_small_yieldloss).mat");
 xaxis_data = DDD.Corr_interploate_rate_set(subset_for_plot);
 yaxis_data = DDD.MAX_COST_SAVINGS_CORR_INTER{1,1}(subset_for_plot);
 data_to_save = [xaxis_data(:), yaxis_data(:)];
-csvwrite('Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_interpoloate_costsavings(small_p_small_yieldloss).csv', data_to_save);
+csvwrite('Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_interpoloate_costsavings(small_p_small_yieldloss).csv', data_to_save);
 
-DDD = load("Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_large_yieldloss).mat");;
+DDD = load("Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_large_yieldloss).mat");;
 xaxis_data = DDD.Corr_interploate_rate_set(subset_for_plot);
 yaxis_data = DDD.MAX_COST_SAVINGS_CORR_INTER{1,1}(subset_for_plot);
 data_to_save = [xaxis_data(:), yaxis_data(:)];
-csvwrite('Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_interpoloate_costsavings(small_p_large_yieldloss).csv', data_to_save);
+csvwrite('Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_interpoloate_costsavings(small_p_large_yieldloss).csv', data_to_save);
 
 
 
@@ -601,9 +601,9 @@ csvwrite('Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr
 for ii = 1 : length(yield_loss_rate_set)
 
     if ii == 1
-        load("Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_small_yieldloss).mat")
+        load("Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_small_yieldloss).mat")
     else
-        load("Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_large_yieldloss).mat")
+        load("Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/Corr_Interpolation(small_p_large_yieldloss).mat")
     end
 
     yield_loss_rate_medium = yield_loss_rate_set(ii);
@@ -837,22 +837,22 @@ for ii = 1 : length(yield_loss_rate_set)
         % Combine data into one table
         % Save boxplot data (concatenated)
         boxplot_data = [boxdata1, boxdata2];
-        writematrix(boxplot_data, 'Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_small_yieldloss)_boxdata.csv');
+        writematrix(boxplot_data, 'Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_small_yieldloss)_boxdata.csv');
         
         % Save metadata (vectors)
         metadata = [boxposition1, boxposition2, meandata1', meandata2', xtick_position', xtick_display'];
-        writematrix(metadata, 'Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_small_yieldloss)_otherdata.csv');
+        writematrix(metadata, 'Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_small_yieldloss)_otherdata.csv');
 
     else
 
         % Combine data into one table
         % Save boxplot data (concatenated)
         boxplot_data = [boxdata1, boxdata2];
-        writematrix(boxplot_data, 'Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_large_yieldloss)_boxdata.csv');
+        writematrix(boxplot_data, 'Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_large_yieldloss)_boxdata.csv');
         
         % Save metadata (vectors)
         metadata = [boxposition1, boxposition2, meandata1', meandata2', xtick_position', xtick_display'];
-        writematrix(metadata, 'Experiment_Data/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_large_yieldloss)_otherdata.csv');
+        writematrix(metadata, 'Experiment_Results/Relative_Cost_Savings_Shortfalls_Corr_Interpolate/corr_inter_shortfall(small_p_large_yieldloss)_otherdata.csv');
 
     end
 
