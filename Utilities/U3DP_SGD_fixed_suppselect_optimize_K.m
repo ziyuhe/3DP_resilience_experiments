@@ -2,7 +2,6 @@ function output = U3DP_SGD_fixed_suppselect_optimize_K(input)
 
 % =========================================================================
 % Script Name:       U3DP_SGD_fixed_suppselect_optimize_K.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - This script applies **Stochastic Gradient Descent (SGD)** to solve the **U3DP problem** 
