@@ -2,7 +2,6 @@ function output = recompute_for_MIP_Benders(input)
 
 % =========================================================================
 % Script Name:       recompute_for_MIP_Benders.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - A stand-along function to post-process the results obtained by MIP_Benders
