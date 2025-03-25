@@ -2,7 +2,6 @@ function output = BoE_Approx_Max_Submod_Exact(input)
 
 % =========================================================================
 % Script Name:      BoE_Approx_Max_Submod_Exact.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - Implements a **local search algorithm** for **supermodular approximation (BOE)** 
