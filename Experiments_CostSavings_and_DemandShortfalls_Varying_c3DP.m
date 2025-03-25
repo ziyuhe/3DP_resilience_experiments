@@ -1,6 +1,5 @@
 % =========================================================================
 % Script Name:       Experiments_CostSavings_and_DemandShortfalls_Varying_c3DP.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - This is part of a series of experiments prefixed with "Experiments_CostSavings_and_DemandShortfalls".
