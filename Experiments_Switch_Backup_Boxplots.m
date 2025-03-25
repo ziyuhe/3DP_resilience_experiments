@@ -1,6 +1,5 @@
 % =========================================================================
-% Script Name:     Experiments_Switch_Backup_Boxplots.m  
-% Author:          Ziyu He  
+% Script Name:     Experiments_Switch_Backup_Boxplots.m   
 % Date:            02/01/2025  
 %  
 % Description:  
