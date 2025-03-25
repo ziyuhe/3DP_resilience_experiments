@@ -1,7 +1,6 @@
 
 % =========================================================================
 % Script Name:     Experiment_Switch_Backup_DT.m 
-% Author:          Ziyu He  
 % Date:            02/01/2025  
 %  
 % Description:  
