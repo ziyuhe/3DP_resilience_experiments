@@ -1,6 +1,5 @@
 % =========================================================================
 % Script Name:       Experiments_Compare_MIP_BoE.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - Compares the computational performance of GRB MIP, Benders MIP, and BoE (Supermodular Approximation).
