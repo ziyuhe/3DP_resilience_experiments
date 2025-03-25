@@ -2,7 +2,6 @@ function output = U3DP_MIP_Benders(input)
 
 % =========================================================================
 % Script Name:       U3DP_MIP_Benders.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - Implements **Benders Decomposition** to optimize:
