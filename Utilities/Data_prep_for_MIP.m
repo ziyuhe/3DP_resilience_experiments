@@ -2,7 +2,6 @@ function output = Data_prep_for_MIP(input)
 
 % =========================================================================
 % Script Name:       Data_prep_for_MIP.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %       - We sample disruptions and demand data 
