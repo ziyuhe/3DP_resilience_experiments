@@ -2,7 +2,6 @@ function output = Cost_No3DP_or_TM(input)
 
 % =========================================================================
 % Script Name:       Cost_No3DP_or_TM.m
-% Author:            Ziyu He
 % Date:              02/01/2025
 % Description:       
 %   - Compute the optimal solution and optimal cost for each product when we are operating under the following scenarios:
